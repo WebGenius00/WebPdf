@@ -1,2 +1,14 @@
 # Dependencies
 node_modules/
+
+# Build output (reconstruit par CI)
+dist/
+apps/api/dist/
+
+# Tmp / logs / env
+*.log
+.env
+.env.*
+.DS_Store
+__pycache__/
+*.pyc
