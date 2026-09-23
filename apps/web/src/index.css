@@ -1,4 +1,0 @@
-/* Reset minimal — les styles applicatifs vivent dans src/app.css */
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; }
-body { margin: 0; }

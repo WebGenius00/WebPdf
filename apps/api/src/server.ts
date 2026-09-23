@@ -16,7 +16,7 @@
  */
 
 import { spawn } from 'node:child_process'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import Fastify, { type FastifyRequest } from 'fastify'
@@ -84,11 +84,21 @@ async function extractText(request: FastifyRequest): Promise<string> {
   return text
 }
 
+/** Whitelist des options de rendu — toute valeur inconnue retombe sur le défaut. */
+const THEMES = new Set(['editorial', 'corporate', 'academic'])
+const PAPERS = new Set(['a4', 'letter'])
+
+interface GenerateBody {
+  text?: string
+  /** Doc JSON déjà validé par l'utilisateur (aperçu) : si présent, on saute la re-structuration. */
+  doc?: unknown
+  theme?: string
+  paper?: string
+}
+
 const app = Fastify({ logger: { level: 'info' } })
-// CORS : le frontend (Vite, port 5173) appelle l'API (port 4000).
-// On autorise explicitement localhost + VITE_ALLOWED_ORIGIN pour la prod.
-const allowedOrigin = (process.env.VITE_ALLOWED_ORIGIN ?? 'http://localhost:5173').split(',')
-await app.register(cors, { origin: [...allowedOrigin, true] })
+// CORS large en dev ; en prod behind proxy, les appels sont same-origin (proxy Vite).
+await app.register(cors, { origin: true })
 await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024 } })
 
 app.get('/api/health', async () => ({ status: 'ok', schema: 'doc/0.1' }))
@@ -119,32 +129,41 @@ app.post('/api/structure', async (request, reply) => {
 
 /**
  * POST /api/generate
- * Corps : { text: string } (JSON) ou multipart (champ file)
- * Réponse : application/pdf (pipeline structurize → render via tmpdir).
+ * Corps JSON : { text: string, doc?: Doc, theme?, paper? }
+ *   - si `doc` (Doc JSON de l'aperçu) est fourni → rendu direct du doc
+ *     (fidélité stricte entre ce que l'utilisateur voit et le PDF livré) ;
+ *   - sinon → pipeline complet structurize(text) → render.
+ * Réponse : application/pdf.
  */
 app.post('/api/generate', async (request, reply) => {
-  let text: string
-  try {
-    text = await extractText(request)
-  } catch (err) {
-    const e = err as { statusCode?: number; message: string }
-    return reply.code(e.statusCode ?? 400).send({ error: e.message })
+  const body = request.body as GenerateBody | undefined
+  const text = typeof body?.text === 'string' ? body.text : ''
+  if (!text.trim() && !body?.doc) {
+    return reply.code(400).send({ error: 'Champ "text" (ou "doc") requis' })
+  }
+  const theme = THEMES.has(body?.theme ?? '') ? body!.theme : 'editorial'
+  const paper = PAPERS.has(body?.paper ?? '') ? body!.paper : 'a4'
+
+  // 1) Obtention du Doc JSON : soit celui validé par le client, soit re-structuration.
+  let docJson: string
+  if (body?.doc && typeof body.doc === 'object') {
+    docJson = JSON.stringify(body.doc)
+  } else {
+    const struct = await runPython(['structurizer.py'], text)
+    if (!struct.ok) {
+      return reply.code(500).send({ error: 'structurization impossible', detail: struct.stderr })
+    }
+    docJson = struct.stdout
   }
 
-  // 1) Structuration : Doc JSON sur stdout
-  const struct = await runPython(['structurizer.py'], text)
-  if (!struct.ok) {
-    return reply.code(500).send({ error: 'structurization impossible', detail: struct.stderr })
-  }
-
+  // 2) Rendu PDF — le doc transite par stdin (aucun fichier intermédiaire côté serveur).
   const dir = await mkdtemp(join(tmpdir(), 'pdfstudio-'))
   try {
-    const docPath = join(dir, 'doc.json')
     const pdfPath = join(dir, 'out.pdf')
-    await writeFile(docPath, struct.stdout, 'utf-8')
-
-    // 2) Rendu PDF (WeasyPrint)
-    const render = await runPython(['renderer.py', docPath, pdfPath])
+    const render = await runPython(
+      ['renderer.py', '--stdin', pdfPath, '--theme', theme!, '--paper', paper!],
+      docJson,
+    )
     if (!render.ok) {
       return reply.code(500).send({ error: 'rendu PDF en échec', detail: render.stderr })
     }
@@ -159,8 +178,8 @@ app.post('/api/generate', async (request, reply) => {
 
 // Gestion centralisée des erreurs (ex : corps trop volumineux).
 app.setErrorHandler((err, _req, reply) => {
-  const status = (err as { statusCode?: number }).statusCode ?? 500
-  reply.code(status).send({ error: err.message })
+  const e = err as { statusCode?: number; message: string }
+  reply.code(e.statusCode ?? 500).send({ error: e.message })
 })
 
 app

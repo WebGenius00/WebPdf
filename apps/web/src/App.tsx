@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { health } from './lib/api'
+import { health, type RenderOptions } from './lib/api'
 import type { Doc } from './lib/doc'
 import { Generator } from './modules/generator/Generator'
 import { DocPreview } from './modules/generator/DocPreview'
@@ -23,6 +23,8 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('generate')
   const [doc, setDoc] = useState<Doc | null>(null)
   const [apiUp, setApiUp] = useState<boolean | null>(null)
+  // Options de rendu partagées entre le générateur (UI) et l'API.
+  const [renderOptions, setRenderOptions] = useState<RenderOptions>({ theme: 'editorial', paper: 'a4' })
 
   // Sonde backend périodique : bandeau d'avertissement si API injoignable.
   useEffect(() => {
@@ -77,7 +79,7 @@ export default function App() {
       <main className="app-main">
         {tab === 'generate' ? (
           <div className="split">
-            <Generator doc={doc} onDoc={setDoc} />
+            <Generator doc={doc} onDoc={setDoc} options={renderOptions} onOptions={setRenderOptions} />
             <DocPreview doc={doc} />
           </div>
         ) : (

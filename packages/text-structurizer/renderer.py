@@ -6,8 +6,13 @@ Qualité éditoriale visée :
   - Hiérarchie visuelle H1/H2/H3, aération, veuves/orphelines corrigées
   - Encadrés (note / astuce / warning), listes, tableaux zébrés, blocs code
   - Pieds de page avec pagination "Page X sur Y"
-Usage :
-  python3 renderer.py doc.json out.pdf [--css theme.css]
+Entrées (mutuellement exclusives) :
+  python3 renderer.py --stdin out.pdf            ← pipeline HTTP (doc sur stdin)
+  python3 renderer.py doc.json out.pdf           ← usage CLI / debug
+Options :
+  --theme {editorial|corporate|academic}         ← palette typographique
+  --paper {a4|letter}                            ← format de page
+  --css theme.css                                ← CSS additionnel (personnalisation)
 """
 
 from __future__ import annotations
@@ -176,20 +181,90 @@ def doc_to_html(doc: dict[str, Any], css: str = DEFAULT_CSS) -> str:
 </html>"""
 
 
+# ---------------------------------------------------------------------------
+# Thèmes & formats : surcouche CSS appliquée par-dessus DEFAULT_CSS.
+# Chaque thème ne redéfinit que les tokens (couleurs/typographie) pour
+# rester compatible avec les règles structurelles du CSS par défaut.
+# ---------------------------------------------------------------------------
+
+THEMES: dict[str, str] = {
+    # Palette par défaut (bleu éditorial) — héritée de DEFAULT_CSS.
+    "editorial": "",
+    "corporate": """
+h1 { border-bottom-color: #0f766e !important; }
+.heading-number { color: #0f766e !important; }
+h2 { color: #115e59 !important; }
+th { background: #134e4a !important; }
+.cover h1.doc-title { color: #0f172a; }
+""",
+    "academic": """
+h1 { border-bottom: 1.4pt solid #111827 !important; font-variant: small-caps; }
+.heading-number { color: #374151 !important; }
+h2, h3 { color: #111827 !important; }
+th { background: #374151 !important; }
+p { text-align: justify; }
+.cover h1.doc-title { font-variant: small-caps; letter-spacing: 0.5pt; }
+""",
+}
+
+PAPERS: dict[str, str] = {
+    "a4": "@page { size: A4; }",
+    "letter": "@page { size: Letter; }",
+}
+
+
+def build_css(theme: str = "editorial", paper: str = "a4", extra: str | None = None) -> str:
+    """Compose le CSS final : base + overrides format + thème + personnalisation."""
+    parts = [DEFAULT_CSS, PAPERS.get(paper.lower(), ""), THEMES.get(theme.lower(), "")]
+    if extra:
+        parts.append(extra)
+    return "\n".join(p for p in parts if p.strip())
+
+
 def render_pdf(doc: dict[str, Any], out_path: str, css: str | None = None) -> str:
+    """Doc JSON → PDF. `css` : CSS complet déjà composé (sinon thème editorial/A4)."""
     from weasyprint import HTML
-    html_str = doc_to_html(doc, css or DEFAULT_CSS)
+    html_str = doc_to_html(doc, css or build_css())
     HTML(string=html_str).write_pdf(out_path)
     return out_path
 
 
+def parse_args(argv: list[str]) -> dict[str, str]:
+    """Mini-parseur CLI sans dépendance : positions + options nommées."""
+    opts = {"theme": "editorial", "paper": "a4", "css": "", "doc": "", "out": ""}
+    positional: list[str] = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--theme":
+            i += 1; opts["theme"] = argv[i]
+        elif a == "--paper":
+            i += 1; opts["paper"] = argv[i]
+        elif a == "--css":
+            i += 1; opts["css"] = argv[i]
+        else:
+            positional.append(a)
+        i += 1
+    if len(positional) < 2:
+        raise SystemExit("Usage : renderer.py (--stdin|doc.json) out.pdf [--theme X] [--paper Y] [--css f.css]")
+    opts["doc"], opts["out"] = positional[0], positional[1]
+    return opts
+
+
 def main() -> None:
-    if len(sys.argv) < 3:
-        print(__doc__)
-        sys.exit(1)
-    with open(sys.argv[1], encoding="utf-8") as f:
-        doc = json.load(f)
-    out = render_pdf(doc, sys.argv[2])
+    opts = parse_args(sys.argv[1:])
+    # Source du Doc JSON : stdin (pipeline HTTP) ou fichier (CLI/debug).
+    if opts["doc"] == "--stdin":
+        doc = json.load(sys.stdin)
+    else:
+        with open(opts["doc"], encoding="utf-8") as f:
+            doc = json.load(f)
+    extra_css = ""
+    if opts["css"]:
+        with open(opts["css"], encoding="utf-8") as f:
+            extra_css = f.read()
+    css = build_css(opts["theme"], opts["paper"], extra_css or None)
+    out = render_pdf(doc, opts["out"], css)
     print(f"PDF généré : {out}")
 
 

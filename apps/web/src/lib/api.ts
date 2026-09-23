@@ -1,11 +1,20 @@
 /**
- * Client HTTP minimal pour l'API PDF Studio (apps/api, Fastify, port 4000).
- * Base configurable via VITE_API_URL (défaut : http://localhost:4000).
+ * Client HTTP minimal pour l'API PDF Studio (apps/api, Fastify).
+ *
+ * Base par défaut : '' (chemin relatif) — en dev, le proxy Vite renvoie
+ * /api/* vers http://localhost:4000, ce qui neutralise tout souci CORS.
+ * En prod derrière un autre domaine, définir VITE_API_URL explicitement.
  */
 
 import { isDoc, type Doc } from './doc'
 
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
+const BASE = import.meta.env.VITE_API_URL ?? ''
+
+/** Options de rendu transmises à /api/generate (thème & format papier). */
+export interface RenderOptions {
+  theme?: 'editorial' | 'corporate' | 'academic'
+  paper?: 'a4' | 'letter'
+}
 
 async function jsonOrThrow(res: Response): Promise<unknown> {
   if (!res.ok) {
@@ -34,12 +43,19 @@ export async function structureText(text: string, signal?: AbortSignal): Promise
   return data
 }
 
-/** POST /api/generate — texte brut → Blob PDF prêt au téléchargement. */
-export async function generatePdf(text: string, signal?: AbortSignal): Promise<Blob> {
+/** POST /api/generate — texte (+ Doc JSON optionnel) → Blob PDF. */
+export async function generatePdf(
+  text: string,
+  options: RenderOptions = {},
+  doc?: Doc | null,
+  signal?: AbortSignal,
+): Promise<Blob> {
   const res = await fetch(`${BASE}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
+    // Si un Doc JSON est fourni (aperçu validé par l'utilisateur), le serveur
+    // saute la re-structuration : le PDF généré est fidèle à l'aperçu affiché.
+    body: JSON.stringify({ text, doc: doc ?? undefined, ...options }),
     signal,
   })
   if (!res.ok) {
