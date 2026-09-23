@@ -1,0 +1,17 @@
+{
+  "name": "pdf-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PDF Studio — Lecture & génération professionnelle de PDF à partir de texte brut",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace apps/web",
+    "dev:api": "npm run dev --workspace apps/api",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

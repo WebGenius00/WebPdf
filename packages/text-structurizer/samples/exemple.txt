@@ -1,0 +1,46 @@
+Guide de démarrage de PDF Studio
+par Marie Dupont
+
+# Introduction
+
+PDF Studio est une plateforme web permettant de lire et de générer des documents PDF professionnels à partir de texte brut. Ce guide présente les grandes étapes d'installation.
+
+## Prérequis
+
+Avant de commencer, vérifiez les éléments suivants :
+- Node.js version 20 ou supérieure
+- Python 3.11+ avec WeasyPrint installé
+- 4 Go d'espace disque disponible
+
+Note : l'installation sous Windows nécessite WSL2 pour le rendu PDF.
+
+# Installation
+
+## Étape 1 — Cloner le dépôt
+
+```bash
+git clone https://github.com/exemple/pdf-studio.git
+cd pdf-studio
+npm install
+```
+
+## Étape 2 — Lancer les services
+
+Démarrer le frontend et le backend :
+
+1. npm run dev:web (port 5173)
+2. npm run dev:api (port 3001)
+
+| Service | Port | Rôle |
+|---|---|---|
+| Frontend | 5173 | Interface React |
+| Backend | 3001 | API Fastify |
+| Worker | — | Rendu PDF |
+
+Astuce : le format du document : un JSON intermédiaire nommé "Doc" qui décrit la structure logique.
+
+Attention : ne jamais modifier le schéma Doc sans faire évoluer la version.
+
+# Conclusion
+
+Vous êtes prêt à générer vos premiers documents. Pour aller plus loin, consultez la documentation complète.
