@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "tsc -b && vite build",
+    "deploy:cf": "vite build && wrangler pages deploy dist --project-name pdf-studio-web --commit-dirty=true",
     "lint": "oxlint",
     "preview": "vite preview"
   },

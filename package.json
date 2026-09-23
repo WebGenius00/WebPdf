@@ -10,7 +10,8 @@
   "scripts": {
     "dev:web": "npm run dev --workspace apps/web",
     "dev:api": "npm run dev --workspace apps/api",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspace @pdf-studio/web",
+    "deploy": "npm run build --workspace @pdf-studio/web && wrangler pages deploy apps/web/dist --project-name pdf-studio-web --commit-dirty=true",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
   }

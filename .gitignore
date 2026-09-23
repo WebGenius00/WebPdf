@@ -1,2 +1,2 @@
-# Dependencies
-node_modules/
+# Wrangler/Cloudflare Workers local state
+.wrangler/
