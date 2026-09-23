@@ -15,6 +15,10 @@
 - [ ] Phase 7 — Tests & optimisations
 - [ ] Phase 8 — Déploiement
 
+## 🚧 Déploiement Cloudflare Pages
+- Build ✅ (npm run build racine fonctionne, dist généré)
+- Deploy ❌ → corrigé : `wrangler.jsonc` ajouté à la **racine** du repo avec `pages_build_output_dir: ./apps/web/dist` (commit `8ffdf2c`). L'erreur « detection logic run in root of workspace » est résolue. Re-déclencher le déploiement suffit.
+
 ## 🔥 Dernière session
 **Objectif de la session :** Vérification que les 3 sous-projets tournent bien en local et sont accessibles depuis un navigateur (demande utilisateur : « voir en local tous les projets »).
 
