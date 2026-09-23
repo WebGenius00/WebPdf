@@ -1,2 +1,1 @@
-# Wrangler/Cloudflare Workers local state
-.wrangler/
+node_modules/
