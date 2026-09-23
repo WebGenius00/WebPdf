@@ -1,0 +1,130 @@
+/* ==========================================================================
+   PDF Studio — styles applicatifs (design system minimal, sans Tailwind
+   pour l'instant : Phase 6 intégrera shadcn/ui). Objectif MVP : lisible,
+   sobre, cohérent avec le rendu papier du PDF.
+   ========================================================================== */
+
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --accent: #2563eb;
+  --danger: #b91c1c;
+  --ok: #15803d;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); }
+
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ---------- En-tête + onglets ---------- */
+.app-header {
+  display: flex; align-items: center; gap: 24px;
+  padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.app-header h1 { font-size: 18px; margin: 0; letter-spacing: -0.02em; }
+.tabs { display: flex; gap: 4px; }
+.tabs button {
+  border: 0; background: transparent; padding: 8px 14px; cursor: pointer;
+  font-size: 14px; color: var(--muted); border-radius: 8px;
+}
+.tabs button.active { background: #eef2ff; color: var(--accent); font-weight: 600; }
+.api-status { margin-left: auto; font-size: 12px; }
+.api-status.up { color: var(--ok); }
+.api-status.down { color: var(--danger); }
+.banner {
+  margin: 8px 20px 0; padding: 8px 12px; border-radius: 8px;
+  background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; font-size: 13px;
+}
+
+/* ---------- Layout principal ---------- */
+.app-main { flex: 1; padding: 16px 20px; max-width: 1400px; width: 100%; margin: 0 auto; }
+.split { display: grid; grid-template-columns: minmax(320px, 42%) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+
+/* ---------- Boutils / toolbar ---------- */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  padding: 7px 12px; border-radius: 8px; font-size: 13px;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+.gen-toolbar, .toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; margin-bottom: 10px;
+}
+.toolbar input[type='number'] { width: 64px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; }
+.spacer { flex: 1; }
+.muted { color: var(--muted); font-size: 12px; }
+.error { color: var(--danger); font-size: 13px; background: #fef2f2; padding: 8px; border-radius: 6px; }
+.stats { text-align: right; margin: 4px 2px 0; }
+
+/* ---------- Générateur ---------- */
+.source {
+  width: 100%; min-height: 60vh; resize: vertical;
+  border: 1px solid var(--line); border-radius: 10px; padding: 14px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; line-height: 1.5;
+  background: var(--panel); color: var(--ink);
+}
+.source:focus { outline: 2px solid #bfdbfe; border-color: var(--accent); }
+
+/* ---------- Aperçu "papier" ---------- */
+.preview { overflow: auto; }
+.page {
+  background: white; border: 1px solid var(--line); border-radius: 4px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.06);
+  max-width: 780px; margin: 0 auto; padding: 48px 56px;
+  font-family: Georgia, 'DejaVu Serif', serif; line-height: 1.55; font-size: 15px;
+}
+.placeholder { padding: 40px; text-align: center; }
+.cover-mini { text-align: center; margin-bottom: 28px; border-bottom: 1px solid var(--line); padding-bottom: 20px; }
+.doc-title { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.01em; }
+.subtitle { color: var(--muted); margin: 0 0 6px; font-style: italic; }
+.byline { color: var(--muted); font-size: 13px; margin: 0; }
+.toc { margin-bottom: 28px; }
+.toc h2 { font-size: 18px; border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
+.toc ul { list-style: none; padding: 0; margin: 0; }
+.toc li[data-level='2'] { padding-left: 18px; }
+.toc li[data-level='3'] { padding-left: 36px; }
+.toc a { color: var(--ink); text-decoration: none; }
+.toc a:hover { color: var(--accent); }
+.num { color: var(--accent); font-weight: 600; margin-right: 4px; }
+.page h1, .page h2, .page h3 { font-family: 'Inter', system-ui, sans-serif; letter-spacing: -0.01em; }
+.callout { border-left: 4px solid var(--accent); background: #eff6ff; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+.callout.tip { border-color: var(--ok); background: #f0fdf4; }
+.callout.warning { border-color: #d97706; background: #fffbeb; }
+.definition b { font-variant: small-caps; }
+table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+thead th { background: #f3f4f6; }
+tbody tr:nth-child(even) { background: #fafafa; }
+caption { caption-side: bottom; color: var(--muted); font-size: 12px; padding-top: 4px; }
+pre { background: #0f172a; color: #e2e8f0; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
+blockquote { border-left: 3px solid var(--line); margin: 14px 0; padding: 2px 16px; color: var(--muted); font-style: italic; }
+figure { margin: 16px 0; text-align: center; }
+figcaption { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+/* ---------- Lecteur PDF ---------- */
+.reader-body { display: flex; gap: 14px; align-items: flex-start; }
+.outline {
+  position: sticky; top: 12px; width: 240px; flex-shrink: 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; max-height: 80vh; overflow: auto;
+}
+.outline h3 { margin: 4px 0 8px; font-size: 13px; text-transform: uppercase; color: var(--muted); }
+.outline ul { list-style: none; margin: 0; padding: 0; }
+.outline button { border: 0; background: none; cursor: pointer; color: var(--ink); font-size: 13px; text-align: left; padding: 3px 0; width: 100%; }
+.outline button:hover { color: var(--accent); }
+.outline button:disabled { color: var(--muted); text-decoration: line-through; cursor: default; }
+.pages { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.page-canvas { box-shadow: 0 2px 12px rgb(0 0 0 / 0.15); border-radius: 2px; background: white; }
+
+/* ---------- Pied de page ---------- */
+.app-footer { text-align: center; padding: 12px; border-top: 1px solid var(--line); background: var(--panel); }

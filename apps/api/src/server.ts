@@ -85,7 +85,10 @@ async function extractText(request: FastifyRequest): Promise<string> {
 }
 
 const app = Fastify({ logger: { level: 'info' } })
-await app.register(cors, { origin: true })
+// CORS : le frontend (Vite, port 5173) appelle l'API (port 4000).
+// On autorise explicitement localhost + VITE_ALLOWED_ORIGIN pour la prod.
+const allowedOrigin = (process.env.VITE_ALLOWED_ORIGIN ?? 'http://localhost:5173').split(',')
+await app.register(cors, { origin: [...allowedOrigin, true] })
 await app.register(multipart, { limits: { files: 1, fileSize: 10 * 1024 * 1024 } })
 
 app.get('/api/health', async () => ({ status: 'ok', schema: 'doc/0.1' }))
