@@ -13,6 +13,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { generatePdf, structureText, type RenderOptions } from '../../lib/api'
 import type { Doc } from '../../lib/doc'
+import { backendCanGenerate, renderDocClient } from '../../lib/renderClient'
 import { SAMPLE_TEXT } from './sample'
 
 interface GeneratorProps {
@@ -26,6 +27,7 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'structure' | 'pdf' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [fallbackMode, setFallbackMode] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   /** Import fichier .txt / .md côté client (lecture locale, aucun upload). */
@@ -39,6 +41,7 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
     })
   }, [onDoc])
 
+  /** Structure le texte : backend prioritaire, repli 100 % client si indisponible. */
   const structure = useCallback(async () => {
     if (!text.trim()) return
     setBusy('structure')
@@ -46,8 +49,15 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
     try {
       onDoc(await structureText(text))
     } catch (err) {
-      setError(String(err instanceof Error ? err.message : err))
-      onDoc(null)
+      // Repli statique (Cloudflare Pages) : moteur de structuration JS local.
+      try {
+        const { structureTextClient } = await import('../../lib/structurizerClient')
+        onDoc(structureTextClient(text))
+        setFallbackMode(true)
+      } catch {
+        setError(String(err instanceof Error ? err.message : err))
+        onDoc(null)
+      }
     } finally {
       setBusy(null)
     }
@@ -59,10 +69,27 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
     setBusy('pdf')
     setError(null)
     try {
-      const blob = await generatePdf(text, options, doc)
+      // Sans Doc structuré, on le produit d'abord (indispensable au rendu).
+      let current = doc
+      if (!current) {
+        try {
+          current = await structureText(text)
+        } catch {
+          const { structureTextClient } = await import('../../lib/structurizerClient')
+          current = structureTextClient(text)
+          setFallbackMode(true)
+        }
+        onDoc(current)
+      }
+      if (fallbackMode || !(await backendCanGenerate())) {
+        setFallbackMode(true)
+        renderDocClient(current, options) // moteur jsPDF local
+        return
+      }
+      const blob = await generatePdf(text, options, current)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      const title = doc?.metadata.title ?? 'document'
+      const title = current.metadata.title ?? 'document'
       a.href = url
       a.download = `${title.toLowerCase().replace(/[^\wà-ÿ-]+/g, '-').slice(0, 60)}.pdf`
       a.click()
@@ -72,7 +99,7 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
     } finally {
       setBusy(null)
     }
-  }, [text, doc, options])
+  }, [text, doc, options, onDoc, fallbackMode])
 
   return (
     <section className="generator">
@@ -119,7 +146,12 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
         <button className="btn" onClick={download} disabled={busy !== null || !text.trim()}>
           {busy === 'pdf' ? 'Génération…' : '⬇ Télécharger le PDF'}
         </button>
-        {doc && <span className="muted">Aperçu structuré prêt — le PDF reprendra exactement cette structure.</span>}
+        {doc && !fallbackMode && <span className="muted">Aperçu structuré prêt — le PDF reprendra exactement cette structure.</span>}
+        {fallbackMode && (
+          <span className="muted" title="Le backend Python est injoignable : structuration et rendu PDF exécutés localement dans le navigateur.">
+            ⚡ Mode local (navigateur) — activez l'API pour le rendu serveur premium.
+          </span>
+        )}
       </div>
 
       {error && <p className="error">{error}</p>}
