@@ -43,7 +43,14 @@
 | 23/09/2026 | API = pont HTTP ↔ sous-processus Python, stateless (tmpdir + stdin/stdout) | Réutilise le PoC validé sans réécriture ; aucun état serveur ⇒ scalable ; timeout dur 60 s anti-blocage. |
 | 23/09/2026 | CORS liste explicite configurable (`VITE_ALLOWED_ORIGIN`) | `origin: true` est pratique en dev mais doit être verrouillé en prod. |
 
+## 🔥 Session 23/09 (2) — Diagnostic "je ne vois rien"
+**Réalisé :**
+- [x] Serveurs vérifiés actifs : web:200, api:200 (`vite --host` port 5173, Fastify port 4000).
+- [x] Contenu servi confirmé : `<title>PDF Studio</title>` — le "webstock/webdock" vu par l'utilisateur vient de son environnement (onglet/port forwarding), pas du code.
+- [x] E2E via proxy Vite validé : `/api/health` OK + `/api/structure` renvoie un Doc JSON correct.
+
 ## ⚠️ Points d'attention / Bloquants
+- **Accès utilisateur** : l'environnement distant affiche une app tierce sur le port prévisualisé → vérifier que le port forward pointe bien vers 5173, sinon lancer en local sur la machine de l'utilisateur (voir README).
 - **Heuristique titres sans `#`** : « Introduction » collé au paragraphe suivant dans notre test rapide → la détection des lignes courtes non ponctuées mérite des cas de test dédiés (Phase 7).
 - **Lecteur PDF non testé en navigateur** : build OK mais validation visuelle (gros PDF, PDF scannés sans texte) reportée.
 - **Polices du PDF** : WeasyPrint utilise DejaVu par défaut ; pour la qualité « publiable », intégrer des licences web (Inter/Source Serif) via `@font-face` dans `renderer.py`.
