@@ -9,7 +9,9 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true, // écoute sur toutes les interfaces (nécessaire en conteneur / accès réseau)
     port: 5173,
+    allowedHosts: true, // accepte les hôtes de type proxy *.preview.app
     proxy: {
       '/api': {
         target: process.env.VITE_API_ORIGIN ?? 'http://localhost:4000',
