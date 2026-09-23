@@ -16,20 +16,21 @@
 - [ ] Phase 8 — Déploiement
 
 ## 🔥 Dernière session
-**Objectif de la session :** Persister les fichiers frontend manquants (dette de la session précédente), créer l'API Fastify d'orchestration et valider le pipeline complet texte → PDF via HTTP.
+**Objectif de la session :** Vérification que les 3 sous-projets tournent bien en local et sont accessibles depuis un navigateur (demande utilisateur : « voir en local tous les projets »).
 
 **Réalisé :**
-- [x] `apps/web/src/lib/doc.ts` — typage complet du contrat `doc/0.1` (blocs, TOC, métadonnées, garde `isDoc`).
-- [x] `apps/web/src/lib/api.ts` — client HTTP (`structureText`, `generatePdf`, `health`).
-- [x] `apps/web/src/modules/reader/PdfReader.tsx` — visionneuse pdfjs-dist : zoom Ctrl+molette, pagination, sommaire/bookmarks résolu en n° de page, rendu HiDPI.
-- [x] `apps/web/src/modules/generator/Generator.tsx` — saisie/import .txt/.md + appels API + téléchargement du PDF.
-- [x] `apps/web/src/modules/generator/DocPreview.tsx` — aperçu "papier" fidèle au renderer (switch exhaustif sur les blocs).
-- [x] `apps/web/src/App.tsx` + `app.css` — coquille à onglets, sonde API avec bandeau d'alerte, styles MVP.
-- [x] `apps/api/` — serveur Fastify (TS, tsx) : `/api/health`, `/api/structure`, `/api/generate` ; orchestration des workers Python via spawn (timeout 60 s, tmpdir nettoyé, stateless).
-- [x] Build frontend vérifié : `tsc -b && vite build` ✅ (worker pdf.js bundlé correctement via `?url`).
-- [x] Test E2E API ✅ : POST /api/generate → PDF valide (`%PDF-1.7`, 10,7 ko) ; /api/structure renvoie un Doc JSON conforme.
+- [x] Audit live : serveurs **déjà actifs** depuis la session précédente — API Fastify (tsx watch, pid 4382, port 4000) + Frontend Vite (--host, pid 4831, port 5173). Relance redondante évitée (EADDRINUSE détecté et ignoré proprement).
+- [x] Vérifications fonctionnelles complètes :
+  - `GET :4000/api/health` → `{"status":"ok","schema":"doc/0.1"}` ✅
+  - `GET :5173` (et via IP réseau `21.0.1.3:5173`) → HTTP 200 ✅ (accessible depuis tout le réseau LAN grâce à `--host`)
+  - Proxy Vite `:5173/api/health` → passe ✅ (zéro CORS)
+  - `POST :5173/api/generate` (doc direct) → `%PDF-1.7` régénéré ✅ (~1 s)
+- [x] Sample statique confirmé présent : `packages/text-structurizer/samples/exemple.pdf` (29 ko) — chargeable dans l'onglet Lire.
+- [ ] Tests manuels navigateur (ressenti UI, gros PDF) — à faire par l'utilisateur.
 
-**Prochaine session — Objectif :** Phase 6 — reprendre `PROGRESS.md`, passer l'UI en Tailwind + shadcn/ui, ajouter la barre de recherche texte dans le lecteur (page + surlignage via `page.streamTextContent()`), puis amorcer la Phase 7 (tests unitaires pytest du structurizer + tests d'API).
+**Accès local :** http://localhost:5173 (ou http://21.0.1.3:5173 depuis un autre appareil du réseau). Relance si besoin : `npm run dev:api` + `npm run dev:web`.
+
+**Prochaine session — Objectif :** Phase 6 — Tailwind + shadcn/ui, code-splitting du module Reader (chunk > 500 ko), puis Phase 7 (pytest structurizer + tests API).
 
 ## 📝 Décisions prises
 | Date | Décision | Raison |
