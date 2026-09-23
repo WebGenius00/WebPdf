@@ -19,7 +19,16 @@
 - Build ✅ (npm run build racine fonctionne, dist généré)
 - Deploy ❌ → corrigé : `wrangler.jsonc` ajouté à la **racine** du repo avec `pages_build_output_dir: ./apps/web/dist` (commit `8ffdf2c`). L'erreur « detection logic run in root of workspace » est résolue. Re-déclencher le déploiement suffit.
 
-## 🔥 Dernière session
+## 🔥 Session 23/09 (déploiement Cloudflare — CAUSE RACINE TROUVÉE & CORRIGÉE)
+**Diagnostic :** l'erreur « workspace root » de wrangler venait de **3410 fichiers `node_modules/` commités dans le dépôt** → Cloudflare détectait un monorepo. Le `wrangler.jsonc` seul ne suffisait pas car la détection s'exécute avant lecture de la config.
+**Corrections (commit `46e952a`) :**
+- [x] `.gitignore` : `node_modules/`, `dist/`, `__pycache__/` + retrait git de tous les fichiers parasites (dépôt propre : 41 fichiers).
+- [x] Script racine `build` → cible uniquement `@pdf-studio/web` ; API `build`→`typecheck` (noEmit).
+- [x] `wrangler.jsonc` racine conservé (`pages_build_output_dir: ./apps/web/dist`).
+- [x] Simulation CI fraîche validée : `npm clean-install` + `npm run build` → dist OK (`<title>PDF Studio</title>`).
+**Reste (actions côté tableau de bord, hors repo) :** relier le projet Pages à ce dépôt et pousser le commit. Si l'erreur persiste après pull : Settings → Builds → Deploy command = `npm run build --workspace @pdf-studio/web`, Output dir = `apps/web/dist`.
+
+## 🔥 Sessions précédentes
 **Objectif de la session :** Vérification que les 3 sous-projets tournent bien en local et sont accessibles depuis un navigateur (demande utilisateur : « voir en local tous les projets »).
 
 **Réalisé :**
