@@ -433,3 +433,18 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 }
+
+/* ---------- Transitions d’onglets performantes ---------- */
+.app-main.tab-panel-generate, .app-main.tab-panel-read {
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+  animation: tab-enter 220ms cubic-bezier(.22, .75, .25, 1) both;
+}
+@keyframes tab-enter {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.tabs button { will-change: color, background-color; }
+@media (prefers-reduced-motion: reduce) {
+  .app-main.tab-panel-generate, .app-main.tab-panel-read { animation: none; }
+}

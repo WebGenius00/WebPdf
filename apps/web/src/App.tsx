@@ -2,14 +2,15 @@
  * PDF Studio — coquille applicative (SPA React + Vite).
  * Le parcours de génération suit : Contenu → Structure → Présentation → Export.
  */
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, startTransition, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_RENDER_OPTIONS, health, type RenderOptions } from './lib/api'
 import type { Doc } from './lib/doc'
 import { Generator } from './modules/generator/Generator'
 import { DocPreview } from './modules/generator/DocPreview'
 import './app.css'
 
-const PdfReader = lazy(() => import('./modules/reader/PdfReader').then((m) => ({ default: m.PdfReader })))
+const loadPdfReader = () => import('./modules/reader/PdfReader')
+const PdfReader = lazy(() => loadPdfReader().then((m) => ({ default: m.PdfReader })))
 type Tab = 'generate' | 'read'
 type Theme = 'auto' | 'light' | 'dark'
 type GenerationStage = 1 | 2 | 3 | 4
@@ -38,6 +39,10 @@ export default function App() {
   const [generationStage, setGenerationStage] = useState<GenerationStage>(1)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
+  const switchTab = useCallback((nextTab: Tab) => {
+    startTransition(() => setTab(nextTab))
+  }, [])
+  const prefetchReader = useCallback(() => { void loadPdfReader() }, [])
 
   useEffect(() => {
     const root = document.documentElement
@@ -90,15 +95,15 @@ export default function App() {
       <header className="app-header">
         <h1 className="brand"><span className="brand-mark">{Icon.doc}</span><span>PDF Studio<small>Lire · Structurer · Générer</small></span></h1>
         <nav className="tabs" role="tablist" aria-label="Modules PDF Studio">
-          <button role="tab" id="tab-generate" aria-controls="panel-generate" aria-selected={tab === 'generate'} className={tab === 'generate' ? 'active' : ''} onClick={() => setTab('generate')}>{Icon.pen}<span>Générer un PDF</span></button>
-          <button role="tab" id="tab-read" aria-controls="panel-read" aria-selected={tab === 'read'} className={tab === 'read' ? 'active' : ''} onClick={() => setTab('read')}>{Icon.book}<span>Lire un PDF</span></button>
+          <button role="tab" id="tab-generate" aria-controls="panel-generate" aria-selected={tab === 'generate'} className={tab === 'generate' ? 'active' : ''} onClick={() => switchTab('generate')}>{Icon.pen}<span>Générer un PDF</span></button>
+          <button role="tab" id="tab-read" aria-controls="panel-read" aria-selected={tab === 'read'} className={tab === 'read' ? 'active' : ''} onPointerEnter={prefetchReader} onFocus={prefetchReader} onClick={() => switchTab('read')}>{Icon.book}<span>Lire un PDF</span></button>
         </nav>
         <div className="header-right">
           <span className={`api-status ${apiUp ? 'up' : 'down'}`} aria-live="polite" title={apiUp ? 'Backend joignable' : 'Backend injoignable — mode local (navigateur)'}><span className="status-prompt" aria-hidden="true">›_</span>{apiUp ? 'SYSTÈME EN LIGNE' : apiUp === false ? 'MODE LOCAL' : 'CONNEXION…'}</span>
           <button className="theme-toggle" onClick={() => setTheme(NEXT_THEME[theme])} title={THEME_LABEL[theme]} aria-label={THEME_LABEL[theme]}>{theme === 'light' ? Icon.sun : theme === 'dark' ? Icon.moon : Icon.auto}</button>
         </div>
       </header>
-      <main className="app-main" id={tab === 'generate' ? 'panel-generate' : 'panel-read'} role="tabpanel" aria-labelledby={`tab-${tab}`}>
+      <main className={`app-main tab-panel-${tab}`} id={tab === 'generate' ? 'panel-generate' : 'panel-read'} role="tabpanel" aria-labelledby={`tab-${tab}`}>
         <section className="hero">
           {tab === 'generate' ? <><h2>Du texte brut à un <span>PDF professionnel</span></h2><p>Un parcours guidé pour écrire, structurer, vérifier, personnaliser puis télécharger.</p></> : <><h2>Lisez vos PDF, <span>sans rien envoyer</span></h2><p>Visionneuse 100 % locale : zoom, sommaire, recherche plein texte.</p></>}
         </section>
