@@ -34,9 +34,12 @@ export async function downloadPreviewPdf(
     try {
       const canvas = await html2canvas(sheet, {
         backgroundColor: '#ffffff',
-        scale: 2,
+        // 3× la résolution de la feuille de référence : les petits corps,
+        // tableaux et traits restent nets après affichage ou impression.
+        scale: 3,
         useCORS: true,
         logging: false,
+        imageTimeout: 0,
         scrollX: 0,
         scrollY: 0,
         width: sheet.offsetWidth,
@@ -45,7 +48,9 @@ export async function downloadPreviewPdf(
         windowHeight: sheet.offsetHeight,
       })
       if (index > 0) pdf.addPage()
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, size.width, size.height, undefined, 'FAST')
+      // PNG + compression NONE : aucune perte JPEG sur les caractères et les
+      // lignes fines de l’aperçu.
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, size.width, size.height, undefined, 'NONE')
     } finally {
       sheet.style.transform = previousTransform
     }
