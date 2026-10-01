@@ -48,3 +48,5 @@ Autres scripts : `npm run build` (tous les workspaces), `npm run typecheck`, `np
 - Aucun fichier persistant côté serveur : tout transite par stdin/stdout + tmpdir nettoyé.
 - Les imports de fichiers (.txt/.md, PDF) sont lus côté client : aucun document ne quitte la machine sauf génération PDF.
 - Le CSS applicatif est volontairement minimal (tokens + dark mode système) ; la migration Tailwind/shadcn est planifiée (Phase 6).
+
+  
