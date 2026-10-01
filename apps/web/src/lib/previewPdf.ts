@@ -24,8 +24,10 @@ export async function downloadPreviewPdf(
   previewPage: HTMLElement,
   paper: 'a4' | 'letter' = 'a4',
   title = 'document',
+  onProgress?: (progress: number) => void,
 ): Promise<void> {
   const size = PAPER[paper] ?? PAPER.a4
+  onProgress?.(4)
   const canvas = await html2canvas(previewPage, {
     backgroundColor: '#ffffff',
     scale: Math.min(2, Math.max(1, window.devicePixelRatio || 1)),
@@ -36,6 +38,7 @@ export async function downloadPreviewPdf(
     windowWidth: previewPage.scrollWidth,
     windowHeight: previewPage.scrollHeight,
   })
+  onProgress?.(48)
 
   const pdf = new jsPDF({ unit: 'mm', format: paper === 'letter' ? 'letter' : 'a4', orientation: 'portrait' })
   const pageHeightPx = Math.max(1, Math.floor(canvas.width * size.height / size.width))
@@ -52,7 +55,9 @@ export async function downloadPreviewPdf(
     pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
     pageContext.drawImage(canvas, 0, index * pageHeightPx, canvas.width, pageHeightPx, 0, 0, canvas.width, pageHeightPx)
     pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.94), 'JPEG', 0, 0, size.width, size.height, undefined, 'FAST')
+    onProgress?.(48 + Math.round(((index + 1) / pageCount) * 48))
   }
 
+  onProgress?.(100)
   pdf.save(safeFilename(title))
 }

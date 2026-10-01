@@ -456,3 +456,10 @@ body {
 @media (max-width: 760px) { .customizer-grid { grid-template-columns: 1fr; } }
 
 .download-error { color: var(--danger); background: var(--danger-bg); border-color: var(--danger-line); }
+
+.download-progress-panel { flex: 0 0 auto; padding: 10px 22px 12px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--accent-soft) 42%, var(--panel)); }
+.download-progress-copy { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; color: var(--muted); font-size: 12px; }
+.download-progress-copy strong { color: var(--accent); font-variant-numeric: tabular-nums; }
+.download-progress-track { height: 6px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--line) 75%, var(--panel)); }
+.download-progress-track span { display: block; height: 100%; border-radius: inherit; background: var(--grad); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 58%, transparent); transition: width 160ms ease-out; }
+@media (max-width: 760px) { .download-progress-panel { padding: 10px 16px 12px; } }
