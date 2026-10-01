@@ -272,12 +272,9 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         </button> : <button type="button" className="btn primary" onClick={onOpenPreview} disabled={busy !== null}>
           Voir l’aperçu et exporter
         </button>}
-        {doc && <button className="btn" onClick={download} disabled={busy !== null || !text.trim()} aria-busy={busy === 'pdf'}>
-          {busy === 'pdf' ? 'Génération…' : 'Télécharger directement'}
-        </button>}
         <span className="document-state" role="status" aria-live="polite">
           <span className={`state-dot ${doc ? 'ready' : text.trim() ? 'attention' : ''}`} aria-hidden="true" />
-          {!text.trim() ? 'Brouillon : ajoutez votre contenu' : !doc ? 'Structure à actualiser' : downloaded ? 'PDF prêt' : 'Document structuré à vérifier'}
+          {!text.trim() ? 'Brouillon : ajoutez votre contenu' : !doc ? 'Structure à actualiser' : downloaded ? 'PDF prêt' : 'Aperçu prêt à vérifier'}
         </span>
         {fallbackMode && (
           <span className="muted" role="status" title="Le backend Python est injoignable : structuration et rendu PDF exécutés localement dans le navigateur.">
@@ -292,16 +289,18 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
           Variables : <code>{'{title}'}</code> titre du document · <code>{'{section}'}</code> section ·{' '}
           <code>{'{page}'}</code> page actuelle · <code>{'{pages}'}</code> nombre total de pages.
         </p>
-        <FurnitureEditor
-          title="En-tête"
-          value={header}
-          onChange={(patch) => updateFurniture('header', patch)}
-        />
-        <FurnitureEditor
-          title="Pied de page"
-          value={footer}
-          onChange={(patch) => updateFurniture('footer', patch)}
-        />
+        <div className="customizer-grid">
+          <FurnitureEditor
+            title="En-tête"
+            value={header}
+            onChange={(patch) => updateFurniture('header', patch)}
+          />
+          <FurnitureEditor
+            title="Pied de page"
+            value={footer}
+            onChange={(patch) => updateFurniture('footer', patch)}
+          />
+        </div>
         <button
           type="button"
           className="btn reset-furniture"

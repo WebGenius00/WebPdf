@@ -99,7 +99,7 @@ export default function App() {
           <button role="tab" id="tab-read" aria-controls="panel-read" aria-selected={tab === 'read'} className={tab === 'read' ? 'active' : ''} onPointerEnter={prefetchReader} onFocus={prefetchReader} onClick={() => switchTab('read')}>{Icon.book}<span>Lire un PDF</span></button>
         </nav>
         <div className="header-right">
-          <span className={`api-status ${apiUp ? 'up' : 'down'}`} aria-live="polite" title={apiUp ? 'Backend joignable' : 'Backend injoignable — mode local (navigateur)'}><span className="status-prompt" aria-hidden="true">›_</span>{apiUp ? 'SYSTÈME EN LIGNE' : apiUp === false ? 'MODE LOCAL' : 'CONNEXION…'}</span>
+          <span className={`api-status ${apiUp ? 'up' : 'down'}`} aria-live="polite" title={apiUp ? 'API disponible' : 'API indisponible — mode local'}>{apiUp ? 'API disponible' : apiUp === false ? 'Mode local' : 'Connexion…'}</span>
           <button className="theme-toggle" onClick={() => setTheme(NEXT_THEME[theme])} title={THEME_LABEL[theme]} aria-label={THEME_LABEL[theme]}>{theme === 'light' ? Icon.sun : theme === 'dark' ? Icon.moon : Icon.auto}</button>
         </div>
       </header>
