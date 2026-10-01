@@ -349,3 +349,43 @@ figcaption { color: #6b7280; font-size: 12px; margin-top: 4px; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 @media print { .app-header, .app-footer, .gen-toolbar, .toolbar { display: none; } .page { box-shadow: none; } }
+
+/* ---------- Parcours guidé et accessibilité (audit UX/UI) ---------- */
+.flow-steps {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; list-style: none;
+  margin: 0 0 14px; padding: 0; counter-reset: flow;
+}
+.flow-steps li { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.flow-steps li span { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); font-size: 11px; }
+.flow-steps li.current { color: var(--accent); }
+.flow-steps li.current span, .flow-steps li.complete span { color: var(--accent-ink); border-color: var(--accent); background: var(--accent); }
+.flow-steps li:not(:last-child)::after { content: ''; height: 1px; flex: 1; margin-left: 4px; background: var(--line); }
+.toolbar-label { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.document-state { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+.state-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.state-dot.attention { background: var(--warn); }
+.state-dot.ready { background: var(--ok); }
+.source-label { display: block; margin: 14px 2px 6px; color: var(--ink); font-size: 13px; font-weight: 600; }
+.success-message { margin: 0; padding: 9px 16px; color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--panel)); border-bottom: 1px solid var(--line); font-size: 13px; }
+.preview-dialog:focus { outline: none; }
+.reader-body { min-width: 0; }
+.pages { min-width: 0; }
+@media (max-width: 760px) {
+  .flow-steps { gap: 3px; }
+  .flow-steps li { flex-direction: column; gap: 3px; text-align: center; font-size: 10px; }
+  .flow-steps li:not(:last-child)::after { display: none; }
+  .gen-toolbar { align-items: stretch; }
+  .gen-toolbar .toolbar-label { width: 100%; }
+  .document-state { width: 100%; }
+  .reader .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .reader .toolbar > .btn, .reader .toolbar > label.btn { grid-column: 1 / -1; }
+  .reader .toolbar > .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .reader .pager, .reader .zoom, .reader .search-box { min-height: 44px; }
+  .reader .search-box { grid-column: 1 / -1; width: 100%; flex-wrap: wrap; }
+  .reader .search-box input { flex: 1; width: auto; min-width: 0; min-height: 44px; }
+  .reader .pager button, .reader .zoom button, .reader .search-box button { min-width: 44px; min-height: 44px; }
+  .reader .pager input, .reader .zoom select { min-height: 44px; }
+  .reader-body { display: block; }
+  .outline { max-height: 180px; overflow: auto; margin-bottom: 12px; }
+  .outline button { min-height: 44px; padding: 10px 0; }
+}

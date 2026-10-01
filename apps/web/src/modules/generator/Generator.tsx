@@ -81,7 +81,7 @@ interface GeneratorProps {
   options: RenderOptions
   onOptions: (o: RenderOptions) => void
   onPreview?: () => void
-  onOpenPreview?: () => void
+  onOpenPreview?: (event?: React.MouseEvent<HTMLElement>) => void
   onDownloadChange?: (handler: (() => Promise<void>) | null) => void
 }
 
@@ -89,6 +89,7 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'structure' | 'pdf' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [downloaded, setDownloaded] = useState(false)
   const [fallbackMode, setFallbackMode] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const lastStructuredText = useRef('')
@@ -107,6 +108,7 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
     if (!file) return
     void file.text().then((content) => {
       setText(content)
+      setDownloaded(false)
       setError(null)
       onDoc(null) // le texte a changé : l'ancien aperçu n'est plus valable
     })
@@ -116,6 +118,7 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
   const structure = useCallback(async (reveal = false) => {
     if (!text.trim()) return
     lastStructuredText.current = text
+    setDownloaded(false)
     setBusy('structure')
     setError(null)
     try {
@@ -169,6 +172,7 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
       if (fallbackMode || !(await backendCanGenerate())) {
         setFallbackMode(true)
         renderDocClient(current, options) // moteur jsPDF local
+        setDownloaded(true)
         return
       }
       const blob = await generatePdf(text, options, current)
@@ -179,6 +183,7 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
       a.download = `${title.toLowerCase().replace(/[^\wà-ÿ-]+/g, '-').slice(0, 60)}.pdf`
       a.click()
       URL.revokeObjectURL(url)
+      setDownloaded(true)
     } catch (err) {
       setError(String(err instanceof Error ? err.message : err))
     } finally {
@@ -194,18 +199,20 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
   return (
     <section className="generator">
       <div className="gen-toolbar">
+        <span className="toolbar-label">Document</span>
         <button className="btn" onClick={() => fileRef.current?.click()}>
           Importer .txt / .md
         </button>
         <input ref={fileRef} type="file" accept=".txt,.md,text/plain" onChange={importFile} hidden />
         <button
           className="btn"
-          onClick={() => { setText(SAMPLE_TEXT); onDoc(null); setError(null) }}
+          onClick={() => { setText(SAMPLE_TEXT); setDownloaded(false); onDoc(null); setError(null) }}
           title="Charger un document exemple pour tester le moteur"
         >
           ✨ Exemple
         </button>
         <span className="spacer" />
+        <span className="toolbar-label">Présentation</span>
         <label className="muted">
           Thème{' '}
           <select
@@ -230,16 +237,21 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
       </div>
 
       <div className="gen-toolbar">
-        <button className="btn primary" onClick={() => void structure(true)} disabled={busy !== null || !text.trim()}>
-          {busy === 'structure' ? 'Structuration…' : '✦ Structurer'}
-        </button>
-        <button className="btn" onClick={download} disabled={busy !== null || !text.trim()}>
-          {busy === 'pdf' ? 'Génération…' : '⬇ Télécharger le PDF'}
-        </button>
-        {doc && <button type="button" className="btn" onClick={onOpenPreview}>Voir l’aperçu</button>}
-        {doc && !fallbackMode && <span className="muted">Document structuré prêt à être vérifié ou téléchargé.</span>}
+        <span className="toolbar-label">Action principale</span>
+        {!doc ? <button className="btn primary" onClick={() => void structure(true)} disabled={busy !== null || !text.trim()} aria-busy={busy === 'structure'}>
+          {busy === 'structure' ? 'Structuration…' : '✦ Structurer le document'}
+        </button> : <button type="button" className="btn primary" onClick={onOpenPreview} disabled={busy !== null}>
+          Voir l’aperçu et exporter
+        </button>}
+        {doc && <button className="btn" onClick={download} disabled={busy !== null || !text.trim()} aria-busy={busy === 'pdf'}>
+          {busy === 'pdf' ? 'Génération…' : 'Télécharger directement'}
+        </button>}
+        <span className="document-state" role="status" aria-live="polite">
+          <span className={`state-dot ${doc ? 'ready' : text.trim() ? 'attention' : ''}`} aria-hidden="true" />
+          {!text.trim() ? 'Brouillon : ajoutez votre contenu' : !doc ? 'Structure à actualiser' : downloaded ? 'PDF prêt' : 'Document structuré à vérifier'}
+        </span>
         {fallbackMode && (
-          <span className="muted" title="Le backend Python est injoignable : structuration et rendu PDF exécutés localement dans le navigateur.">
+          <span className="muted" role="status" title="Le backend Python est injoignable : structuration et rendu PDF exécutés localement dans le navigateur.">
             ⚡ Mode local (navigateur) — activez l'API pour le rendu serveur premium.
           </span>
         )}
@@ -301,7 +313,9 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
 
       {error && <p className="error">{error}</p>}
 
+      <label className="source-label" htmlFor="document-source">Contenu du document</label>
       <textarea
+        id="document-source"
         className="source"
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -312,8 +326,10 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
           'Astuce : cliquez sur "✨ Exemple" pour voir ce que fait le moteur.'
         }
         spellCheck={false}
+        aria-describedby="document-source-help"
+        aria-busy={busy === 'structure'}
       />
-      <p className="muted stats">
+      <p id="document-source-help" className="muted stats">
         {text.trim() ? `${text.trim().split(/\s+/).length} mots · ${text.length} caractères` : 'Aucun texte saisi'}
       </p>
     </section>
