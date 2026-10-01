@@ -1,10 +1,4 @@
-/**
- * Aperçu web du Doc JSON (schéma doc/0.1).
- * L’article est une feuille papier calibrée : elle est seulement réduite
- * visuellement pour tenir dans le panneau, jamais étirée ni reflowée.
- */
-
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { Block, Doc } from '../../lib/doc'
 import type { LayoutOptions } from '../../lib/api'
 
@@ -18,7 +12,7 @@ function paperPixels(paper: 'a4' | 'letter', orientation: 'portrait' | 'landscap
   return orientation === 'landscape' ? { width: size.height, height: size.width } : size
 }
 
-function InlineText({ text }: { text: string }): ReactNode {
+function InlineText({ text }: { text: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>
@@ -28,7 +22,7 @@ function InlineText({ text }: { text: string }): ReactNode {
   })
 }
 
-function BlockView({ block }: { block: Block }): ReactNode {
+function BlockView({ block }: { block: Block }) {
   switch (block.type) {
     case 'heading': {
       const Tag = (`h${Math.min(block.level, 3)}`) as 'h1' | 'h2' | 'h3'
@@ -46,6 +40,15 @@ function BlockView({ block }: { block: Block }): ReactNode {
   }
 }
 
+function Cover({ metadata }: { metadata: Doc['metadata'] }) {
+  return <header className="cover-mini"><h1 className="doc-title">{metadata.title ?? 'Document sans titre'}</h1>{metadata.subtitle && <p className="subtitle">{metadata.subtitle}</p>}{metadata.author && <p className="byline">{metadata.author}</p>}</header>
+}
+
+function TableOfContents({ toc }: { toc: Doc['toc'] }) {
+  if (!toc.length) return null
+  return <nav className="toc" aria-label="Table des matières"><h2>Sommaire</h2><ul>{toc.map((entry) => <li key={entry.id} data-level={entry.level}><a href={`#${entry.id}`}><span className="num">{entry.number}</span> {entry.text}</a></li>)}</ul></nav>
+}
+
 interface DocPreviewProps {
   doc: Doc | null
   layout?: LayoutOptions
@@ -57,48 +60,60 @@ interface DocPreviewProps {
 
 export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait', font = 'serif', pageRef }: DocPreviewProps) {
   const previewRef = useRef<HTMLElement>(null)
-  const articleRef = useRef<HTMLElement>(null)
+  const measureRef = useRef<HTMLElement>(null)
   const [scale, setScale] = useState(1)
+  const [pageGroups, setPageGroups] = useState<number[][] | null>(null)
   const paperSize = paperPixels(paper, orientation)
-  const [contentHeight, setContentHeight] = useState<number>(paperSize.height)
+  const tocLength = doc?.toc.length ?? 0
 
   useLayoutEffect(() => {
     const preview = previewRef.current
-    const article = articleRef.current
-    if (!preview || !article) return
+    const measure = measureRef.current
+    if (!preview || !measure || !doc) return
     const update = () => {
       const available = Math.max(260, preview.clientWidth - 44)
-      const nextScale = Math.min(1, available / paperSize.width)
-      setScale(nextScale)
-      setContentHeight(Math.max(paperSize.height, article.scrollHeight))
+      setScale(Math.min(1, available / paperSize.width))
+      const contentStart = tocLength > 0 ? 2 : 1
+      const children = Array.from(measure.children).slice(contentStart) as HTMLElement[]
+      const top = measure.getBoundingClientRect().top
+      const groups: number[][] = [[]]
+      let page = 0
+      for (let index = 0; index < children.length; index += 1) {
+        const bottom = children[index].getBoundingClientRect().bottom - top
+        if (groups[page].length > 0 && bottom > (page + 1) * paperSize.height) {
+          page += 1
+          groups[page] = []
+        }
+        groups[page].push(index)
+      }
+      setPageGroups(groups.filter((group) => group.length > 0))
     }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(preview)
-    observer.observe(article)
+    observer.observe(measure)
     return () => observer.disconnect()
-  }, [doc, paper, orientation, paperSize.height, paperSize.width])
+  }, [doc, paper, orientation, font, layout, tocLength, paperSize.height, paperSize.width])
 
   if (!doc) return <section className="preview"><p className="muted placeholder">L’aperçu du document structuré apparaîtra ici après structuration.</p></section>
 
   const { metadata, toc, blocks } = doc
-  const setPageRef = (node: HTMLElement | null) => {
-    articleRef.current = node
-    pageRef?.(node)
-  }
-  const stageHeight = Math.max(paperSize.height, contentHeight) * scale + 44
-  const pageCount = Math.max(1, Math.ceil(contentHeight / paperSize.height))
+  const groups = pageGroups ?? [blocks.map((_, index) => index)]
+  const pageClass = `page paper-${paper} orientation-${orientation} font-${font} density-${layout?.density ?? 'standard'} title-spacing-${layout?.titleSpacing ?? 'standard'} align-${layout?.paragraphAlign ?? 'justify'}`
+  const stageHeight = groups.length * (paperSize.height * scale + 28) + 8
+  const setPageRef = (node: HTMLElement | null) => pageRef?.(node)
 
   return (
     <section ref={previewRef} className="preview" aria-live="polite">
-      <div className="preview-meta"><span>Format {paper.toUpperCase()} · {orientation === 'portrait' ? 'Portrait' : 'Paysage'}</span><strong>{pageCount} {pageCount > 1 ? 'pages' : 'page'}</strong></div>
-      <div className="preview-stage" style={{ height: stageHeight }}>
-        <div className="preview-page-guides" aria-hidden="true">{Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => <span key={index} style={{ top: `${(index + 1) * paperSize.height * scale}px` }}>Page {index + 2}</span>)}</div>
-        <article ref={setPageRef} className={`page paper-${paper} orientation-${orientation} font-${font} density-${layout?.density ?? 'standard'} title-spacing-${layout?.titleSpacing ?? 'standard'} align-${layout?.paragraphAlign ?? 'justify'}`} style={{ width: paperSize.width, minHeight: paperSize.height, transform: `scale(${scale})` }}>
-          <header className="cover-mini"><h1 className="doc-title">{metadata.title ?? 'Document sans titre'}</h1>{metadata.subtitle && <p className="subtitle">{metadata.subtitle}</p>}{metadata.author && <p className="byline">{metadata.author}</p>}</header>
-          {toc.length > 0 && <nav className="toc" aria-label="Table des matières"><h2>Sommaire</h2><ul>{toc.map((entry) => <li key={entry.id} data-level={entry.level}><a href={`#${entry.id}`}><span className="num">{entry.number}</span> {entry.text}</a></li>)}</ul></nav>}
-          {blocks.map((block, i) => <BlockView key={i} block={block} />)}
-        </article>
+      <div className="preview-meta"><span>Format {paper.toUpperCase()} · {orientation === 'portrait' ? 'Portrait' : 'Paysage'}</span><strong>{groups.length} {groups.length > 1 ? 'pages' : 'page'}</strong></div>
+      <div className="preview-stage paginated-preview" ref={setPageRef} style={{ height: stageHeight }}>
+        {groups.map((group, pageIndex) => <div className="page-sheet" key={pageIndex} style={{ width: paperSize.width, height: paperSize.height, top: pageIndex * (paperSize.height + 28) * scale, transform: `translateX(-50%) scale(${scale})` }}>
+          <article className={pageClass} style={{ width: paperSize.width, minHeight: paperSize.height }}>
+            {pageIndex === 0 && <><Cover metadata={metadata}/><TableOfContents toc={toc}/></>}
+            {group.map((blockIndex) => <div className="preview-block" key={blockIndex}><BlockView block={blocks[blockIndex]} /></div>)}
+          </article>
+        </div>)}
+        <article ref={measureRef} className={`${pageClass} preview-measure`} style={{ width: paperSize.width, minHeight: paperSize.height }} aria-hidden="true"><Cover metadata={metadata}/><TableOfContents toc={toc}/>{blocks.map((block, index) => <div className="preview-block" key={index}><BlockView block={block} /></div>)}</article>
       </div>
     </section>
   )

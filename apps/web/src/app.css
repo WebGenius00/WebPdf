@@ -496,3 +496,9 @@ body {
 .preview-page-guides span { padding-right: 4px; }
 .preview-page-guides span::after { content: attr(data-label); }
 .preview-stage > .page { position: relative; z-index: 1; }
+
+/* ---------- Feuilles d’aperçu réellement séparées ---------- */
+.paginated-preview { position: relative; overflow: visible; }
+.page-sheet { position: absolute; left: 50%; transform-origin: top center; overflow: hidden; background: white; }
+.page-sheet > .page { width: 100% !important; height: 100%; min-height: 0 !important; margin: 0; overflow: hidden; box-shadow: var(--shadow-lg), 0 0 0 1px rgb(0 0 0 / 0.05); }
+.preview-measure { position: absolute !important; left: -100000px; top: 0; visibility: hidden; transform: none !important; pointer-events: none; }
