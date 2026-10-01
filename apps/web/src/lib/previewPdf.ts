@@ -15,6 +15,18 @@ function safeFilename(title: string): string {
   return `${title.toLowerCase().replace(/[^\wà-ÿ-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'document'}.pdf`
 }
 
+function visibleBlockBoundaries(previewPage: HTMLElement, canvas: HTMLCanvasElement): number[] {
+  const pageRect = previewPage.getBoundingClientRect()
+  const scale = canvas.width / Math.max(1, pageRect.width)
+  return Array.from(previewPage.children)
+    .map((child) => {
+      const rect = (child as HTMLElement).getBoundingClientRect()
+      return Math.round((rect.bottom - pageRect.top) * scale)
+    })
+    .filter((bottom) => bottom > 0 && bottom < canvas.height)
+    .sort((a, b) => a - b)
+}
+
 /**
  * Capture la page blanche affichée dans l’aperçu et la découpe sans la
  * re-structurer. Chaque page PDF est donc un extrait exact de ce que voit
@@ -42,20 +54,30 @@ export async function downloadPreviewPdf(
 
   const pdf = new jsPDF({ unit: 'mm', format: paper === 'letter' ? 'letter' : 'a4', orientation: 'portrait' })
   const pageHeightPx = Math.max(1, Math.floor(canvas.width * size.height / size.width))
-  const pageCount = Math.max(1, Math.ceil(canvas.height / pageHeightPx))
-  const pageCanvas = document.createElement('canvas')
-  pageCanvas.width = canvas.width
-  pageCanvas.height = pageHeightPx
-  const pageContext = pageCanvas.getContext('2d')
-  if (!pageContext) throw new Error('Impossible de préparer le PDF depuis l’aperçu')
+  const boundaries = visibleBlockBoundaries(previewPage, canvas)
+  let sourceTop = 0
+  let pageIndex = 0
 
-  for (let index = 0; index < pageCount; index += 1) {
-    if (index > 0) pdf.addPage()
+  while (sourceTop < canvas.height) {
+    const targetBottom = Math.min(canvas.height, sourceTop + pageHeightPx)
+    const safeBottom = boundaries
+      .filter((boundary) => boundary > sourceTop + 120 && boundary <= targetBottom)
+      .pop() ?? targetBottom
+    const sliceHeight = Math.max(1, safeBottom - sourceTop)
+    const pageCanvas = document.createElement('canvas')
+    pageCanvas.width = canvas.width
+    pageCanvas.height = sliceHeight
+    const pageContext = pageCanvas.getContext('2d')
+    if (!pageContext) throw new Error('Impossible de préparer le PDF depuis l’aperçu')
     pageContext.fillStyle = '#ffffff'
     pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
-    pageContext.drawImage(canvas, 0, index * pageHeightPx, canvas.width, pageHeightPx, 0, 0, canvas.width, pageHeightPx)
-    pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.94), 'JPEG', 0, 0, size.width, size.height, undefined, 'FAST')
-    onProgress?.(48 + Math.round(((index + 1) / pageCount) * 48))
+    pageContext.drawImage(canvas, 0, sourceTop, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight)
+    if (pageIndex > 0) pdf.addPage()
+    const renderedHeight = sliceHeight / canvas.width * size.width
+    pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.96), 'JPEG', 0, 0, size.width, renderedHeight, undefined, 'FAST')
+    sourceTop = safeBottom
+    pageIndex += 1
+    onProgress?.(48 + Math.round(Math.min(1, sourceTop / canvas.height) * 48))
   }
 
   onProgress?.(100)
