@@ -507,3 +507,8 @@ body {
 .page table { table-layout: fixed; }
 .page td, .page th { overflow-wrap: anywhere; }
 .page.orientation-landscape { line-height: 1.55; }
+
+.quality-warning { margin: 0 16px 10px; padding: 12px 14px; color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line)); border-radius: var(--radius-sm); font-size: 12px; line-height: 1.5; }
+.quality-warning strong { display: block; margin-bottom: 4px; color: var(--ink); }
+.quality-warning ul { margin: 4px 0 6px 18px; padding: 0; }
+.quality-warning span { color: var(--muted); }

@@ -5,6 +5,7 @@
 import { lazy, startTransition, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_RENDER_OPTIONS, health, type RenderOptions } from './lib/api'
 import { downloadPreviewPdf } from './lib/previewPdf'
+import { inspectPreviewQuality, type PreviewQualityIssue } from './lib/previewQuality'
 import type { Doc } from './lib/doc'
 import { Generator } from './modules/generator/Generator'
 import { DocPreview } from './modules/generator/DocPreview'
@@ -37,6 +38,8 @@ export default function App() {
   const [downloadMessage, setDownloadMessage] = useState('')
   const [downloadBusy, setDownloadBusy] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(0)
+  const [qualityIssues, setQualityIssues] = useState<PreviewQualityIssue[]>([])
+  const [qualityOverride, setQualityOverride] = useState(false)
   const [generationStage, setGenerationStage] = useState<GenerationStage>(1)
   const previewPageRef = useRef<HTMLElement>(null)
   const switchTab = useCallback((nextTab: Tab) => {
@@ -50,6 +53,16 @@ export default function App() {
     try { localStorage.setItem('pdf-studio-theme', theme) } catch { /* stockage indisponible */ }
   }, [theme])
   const [renderOptions, setRenderOptions] = useState<RenderOptions>(DEFAULT_RENDER_OPTIONS)
+  const handleDocChange = (nextDoc: Doc | null) => {
+    setDoc(nextDoc)
+    setQualityIssues([])
+    setQualityOverride(false)
+  }
+  const handleOptionsChange = (nextOptions: RenderOptions) => {
+    setRenderOptions(nextOptions)
+    setQualityIssues([])
+    setQualityOverride(false)
+  }
 
   useEffect(() => {
     let alive = true
@@ -58,8 +71,18 @@ export default function App() {
     return () => { alive = false; clearInterval(id) }
   }, [])
 
-  const handleDownload = async () => {
+  const handleDownload = async (ignoreQuality = false) => {
     if (!previewPageRef.current || !doc) return
+    if (!ignoreQuality) {
+      const issues = inspectPreviewQuality(previewPageRef.current)
+      if (issues.length > 0) {
+        setQualityIssues(issues)
+        setQualityOverride(true)
+        return
+      }
+    }
+    setQualityIssues([])
+    setQualityOverride(false)
     setDownloadMessage('')
     setDownloadProgress(0)
     setDownloadBusy(true)
@@ -91,7 +114,7 @@ export default function App() {
         </section>
         {tab === 'generate' ? <div className="editor-stage"><ol className="flow-steps" aria-label="Progression de génération">
           {['Contenu', 'Structure', 'Présentation', 'Export'].map((label, index) => <li key={label} className={index + 1 === generationStage ? 'current' : index + 1 < generationStage ? 'complete' : ''}><span>{index + 1}</span>{label}</li>)}
-        </ol><div className="generator-workspace"><Generator doc={doc} onDoc={setDoc} onStage={setGenerationStage} options={renderOptions} onOptions={setRenderOptions} onPreview={() => setGenerationStage(4)}/><section className="live-preview-panel" aria-label="Aperçu PDF en direct"><div className="live-preview-header"><div><p className="eyebrow">Aperçu en direct</p><h2>Votre PDF</h2><p className="muted">La version téléchargée sera capturée ici, telle qu’elle est affichée.</p></div><button type="button" className="btn primary" onClick={() => void handleDownload()} disabled={!doc || downloadBusy} aria-busy={downloadBusy}>{downloadBusy ? `Génération ${downloadProgress}%` : downloadMessage.startsWith('Échec') ? 'Réessayer' : downloadMessage ? '✓ PDF téléchargé' : '⬇ Télécharger le PDF'}</button></div>{downloadBusy && <div className="download-progress-panel" role="status" aria-live="polite"><div className="download-progress-copy"><span>{downloadProgress < 48 ? 'Capture de l’aperçu…' : 'Assemblage des pages PDF…'}</span><strong>{downloadProgress}%</strong></div><div className="download-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={downloadProgress} aria-label="Progression de la génération du PDF"><span style={{ width: `${downloadProgress}%` }}/></div></div>}{downloadMessage && <p className={`success-message${downloadMessage.startsWith('Échec') ? ' download-error' : ''}`} role="status" aria-live="polite">{downloadMessage}</p>}<DocPreview doc={doc} layout={renderOptions.layout} paper={renderOptions.paper} orientation={renderOptions.orientation} font={renderOptions.font} pageRef={(node) => { previewPageRef.current = node }}/></section></div></div> : <div id="panel-read"><Suspense fallback={<p className="muted" style={{ padding: '2rem' }} role="status">Chargement du lecteur…</p>}><PdfReader/></Suspense></div>}
+        </ol><div className="generator-workspace"><Generator doc={doc} onDoc={handleDocChange} onStage={setGenerationStage} options={renderOptions} onOptions={handleOptionsChange} onPreview={() => setGenerationStage(4)}/><section className="live-preview-panel" aria-label="Aperçu PDF en direct"><div className="live-preview-header"><div><p className="eyebrow">Aperçu en direct</p><h2>Votre PDF</h2><p className="muted">La version téléchargée sera capturée ici, telle qu’elle est affichée.</p></div><button type="button" className="btn primary" onClick={() => void handleDownload(qualityOverride)} disabled={!doc || downloadBusy} aria-busy={downloadBusy}>{downloadBusy ? `Génération ${downloadProgress}%` : qualityOverride ? 'Télécharger malgré tout' : downloadMessage.startsWith('Échec') ? 'Réessayer' : downloadMessage ? '✓ PDF téléchargé' : '⬇ Télécharger le PDF'}</button></div>{downloadBusy && <div className="download-progress-panel" role="status" aria-live="polite"><div className="download-progress-copy"><span>{downloadProgress < 48 ? 'Capture de l’aperçu…' : 'Assemblage des pages PDF…'}</span><strong>{downloadProgress}%</strong></div><div className="download-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={downloadProgress} aria-label="Progression de la génération du PDF"><span style={{ width: `${downloadProgress}%` }}/></div></div>}{qualityIssues.length > 0 && <div className="quality-warning" role="alert"><strong>Contrôle qualité avant téléchargement</strong><ul>{qualityIssues.map((issue, index) => <li key={`${issue.type}-${issue.page}-${index}`}>{issue.message}</li>)}</ul><span>Corrigez le contenu ou confirmez avec « Télécharger malgré tout ».</span></div>}{downloadMessage && <p className={`success-message${downloadMessage.startsWith('Échec') ? ' download-error' : ''}`} role="status" aria-live="polite">{downloadMessage}</p>}<DocPreview doc={doc} layout={renderOptions.layout} paper={renderOptions.paper} orientation={renderOptions.orientation} font={renderOptions.font} pageRef={(node) => { previewPageRef.current = node }}/></section></div></div> : <div id="panel-read"><Suspense fallback={<p className="muted" style={{ padding: '2rem' }} role="status">Chargement du lecteur…</p>}><PdfReader/></Suspense></div>}
       </main>
       <footer className="app-footer muted">PDF Studio · schéma doc/0.1</footer>
     </div>
