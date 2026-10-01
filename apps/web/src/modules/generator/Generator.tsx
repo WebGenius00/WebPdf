@@ -309,13 +309,15 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         )}
       </div>
 
-      <nav className="quick-shortcuts" aria-label="Accès rapides aux options">
-        <span className="quick-shortcuts-label">Accès rapides</span>
-        <button type="button" className="quick-shortcut" onClick={() => openShortcut(formatRef.current)}>Aa <span>Formatage</span></button>
-        <button type="button" className="quick-shortcut" onClick={() => openShortcut(searchRef.current)}>⌕ <span>Rechercher</span></button>
-        <button type="button" className="quick-shortcut" onClick={() => openShortcut(layoutRef.current)}>▦ <span>Mise en page</span></button>
-        <button type="button" className="quick-shortcut" onClick={() => openShortcut(furnitureRef.current)}>☷ <span>En-tête / pied</span></button>
-      </nav>
+      <details className="quick-drawer">
+        <summary aria-label="Afficher les accès rapides">☷ <span>Options</span></summary>
+        <nav className="quick-shortcuts" aria-label="Accès rapides aux options">
+          <button type="button" className="quick-shortcut" onClick={() => openShortcut(formatRef.current)}>Aa <span>Formatage</span></button>
+          <button type="button" className="quick-shortcut" onClick={() => openShortcut(searchRef.current)}>⌕ <span>Rechercher</span></button>
+          <button type="button" className="quick-shortcut" onClick={() => openShortcut(layoutRef.current)}>▦ <span>Mise en page</span></button>
+          <button type="button" className="quick-shortcut" onClick={() => openShortcut(furnitureRef.current)}>☷ <span>En-tête / pied</span></button>
+        </nav>
+      </details>
 
       <details ref={furnitureRef} className="print-customizer">
         <summary>Zones de page — en-tête et pied de page</summary>
