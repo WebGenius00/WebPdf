@@ -78,6 +78,7 @@ function FurnitureEditor({ title, value, onChange }: FurnitureEditorProps) {
 interface GeneratorProps {
   doc: Doc | null
   onDoc: (doc: Doc | null) => void
+  onStage?: (stage: 1 | 2 | 3 | 4) => void
   options: RenderOptions
   onOptions: (o: RenderOptions) => void
   onPreview?: () => void
@@ -85,7 +86,7 @@ interface GeneratorProps {
   onDownloadChange?: (handler: (() => Promise<void>) | null) => void
 }
 
-export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPreview, onDownloadChange }: GeneratorProps) {
+export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, onOpenPreview, onDownloadChange }: GeneratorProps) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'structure' | 'pdf' | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -110,25 +111,30 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
       setText(content)
       setDownloaded(false)
       setError(null)
+      setFallbackMode(false)
+      onStage?.(1)
       onDoc(null) // le texte a changé : l'ancien aperçu n'est plus valable
     })
-  }, [onDoc])
+  }, [onDoc, onStage])
 
   /** Structure le texte : backend prioritaire, repli 100 % client si indisponible. */
   const structure = useCallback(async (reveal = false) => {
     if (!text.trim()) return
     lastStructuredText.current = text
     setDownloaded(false)
+    onStage?.(2)
     setBusy('structure')
     setError(null)
     try {
       onDoc(await structureText(text))
+      onStage?.(3)
       if (reveal) onPreview?.()
     } catch (err) {
       // Repli statique (Cloudflare Pages) : moteur de structuration JS local.
       try {
         const { structureTextClient } = await import('../../lib/structurizerClient')
         onDoc(structureTextClient(text))
+        onStage?.(3)
         if (reveal) onPreview?.()
         setFallbackMode(true)
       } catch {
@@ -138,7 +144,7 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
     } finally {
       setBusy(null)
     }
-  }, [text, onDoc, onPreview])
+  }, [text, onDoc, onPreview, onStage])
 
   // L’aperçu se met à jour automatiquement après une courte pause de saisie.
   useEffect(() => {
@@ -170,6 +176,7 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
       // jsPDF n'est chargé qu'au moment de générer.
       const { backendCanGenerate, renderDocClient } = await import('../../lib/renderClient')
       if (fallbackMode || !(await backendCanGenerate())) {
+        onStage?.(4)
         setFallbackMode(true)
         renderDocClient(current, options) // moteur jsPDF local
         setDownloaded(true)
@@ -184,17 +191,36 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
       a.click()
       URL.revokeObjectURL(url)
       setDownloaded(true)
+      onStage?.(4)
     } catch (err) {
       setError(String(err instanceof Error ? err.message : err))
     } finally {
       setBusy(null)
     }
-  }, [text, doc, options, onDoc, fallbackMode])
+  }, [text, doc, options, onDoc, onStage, fallbackMode])
 
   useEffect(() => {
     onDownloadChange?.(download)
     return () => onDownloadChange?.(null)
   }, [download, onDownloadChange])
+
+  const updateText = (value: string) => {
+    setText(value)
+    setDownloaded(false)
+    setError(null)
+    onStage?.(1)
+    onDoc(null)
+  }
+
+  const clearDocument = () => {
+    setText('')
+    setDownloaded(false)
+    setFallbackMode(false)
+    setError(null)
+    onStage?.(1)
+    lastStructuredText.current = ''
+    onDoc(null)
+  }
 
   return (
     <section className="generator">
@@ -206,10 +232,13 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
         <input ref={fileRef} type="file" accept=".txt,.md,text/plain" onChange={importFile} hidden />
         <button
           className="btn"
-          onClick={() => { setText(SAMPLE_TEXT); setDownloaded(false); onDoc(null); setError(null) }}
+          onClick={() => updateText(SAMPLE_TEXT)}
           title="Charger un document exemple pour tester le moteur"
         >
           ✨ Exemple
+        </button>
+        <button className="btn subtle-action" onClick={clearDocument} disabled={!text} title="Effacer le contenu et recommencer">
+          Effacer
         </button>
         <span className="spacer" />
         <span className="toolbar-label">Présentation</span>
@@ -258,7 +287,7 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
       </div>
 
       <details className="print-customizer">
-        <summary>Personnaliser les en-têtes et pieds de page</summary>
+        <summary>Zones de page — en-tête et pied de page</summary>
         <p className="muted furniture-help">
           Variables : <code>{'{title}'}</code> titre du document · <code>{'{section}'}</code> section ·{' '}
           <code>{'{page}'}</code> page actuelle · <code>{'{pages}'}</code> nombre total de pages.
@@ -287,7 +316,7 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
       </details>
 
       <details className="print-customizer layout-customizer">
-        <summary>Contrôler la mise en page avant génération</summary>
+        <summary>Rythme du document — espacement et texte</summary>
         <p className="muted furniture-help">Modifiez ces réglages pour corriger les espacements et l’équilibre du document avant de télécharger le PDF.</p>
         <div className="layout-controls">
           <label>Densité
@@ -318,7 +347,7 @@ export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPre
         id="document-source"
         className="source"
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => updateText(e.target.value)}
         placeholder={
           'Collez ici votre texte brut…\n\n' +
           'Le moteur détecte automatiquement titres, listes, tableaux, encadrés,\n' +
