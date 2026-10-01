@@ -9,7 +9,7 @@
  *   4. le téléchargement capture cette feuille visible, sans second renderer.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   DEFAULT_RENDER_OPTIONS,
   structureText,
@@ -18,6 +18,7 @@ import {
 } from '../../lib/api'
 import type { Doc } from '../../lib/doc'
 import { SAMPLE_TEXT } from './sample'
+import { structureTextClient } from '../../lib/structurizerClient'
 
 interface FurnitureEditorProps {
   title: string
@@ -88,7 +89,7 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
   const [error, setError] = useState<string | null>(null)
   const [fallbackMode, setFallbackMode] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const lastStructuredText = useRef('')
+  const sourceRef = useRef<HTMLTextAreaElement>(null)
   const header = options.header ?? DEFAULT_RENDER_OPTIONS.header!
   const footer = options.footer ?? DEFAULT_RENDER_OPTIONS.footer!
   const layout = options.layout ?? DEFAULT_RENDER_OPTIONS.layout!
@@ -98,23 +99,26 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
     onOptions({ ...options, [kind]: { ...current, ...patch } })
   }
 
+  const updateText = useCallback((value: string) => {
+    setText(value)
+    setError(null)
+    onStage?.(1)
+    onDoc(value.trim() ? structureTextClient(value) : null)
+  }, [onDoc, onStage])
+
   /** Import fichier .txt / .md côté client (lecture locale, aucun upload). */
   const importFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     void file.text().then((content) => {
-      setText(content)
-      setError(null)
+      updateText(content)
       setFallbackMode(false)
-      onStage?.(1)
-      onDoc(null) // le texte a changé : l'ancien aperçu n'est plus valable
     })
-  }, [onDoc, onStage])
+  }, [updateText])
 
   /** Structure le texte : backend prioritaire, repli 100 % client si indisponible. */
   const structure = useCallback(async (reveal = false) => {
     if (!text.trim()) return
-    lastStructuredText.current = text
     onStage?.(2)
     setBusy('structure')
     setError(null)
@@ -122,37 +126,29 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
       onDoc(await structureText(text))
       onStage?.(3)
       if (reveal) onPreview?.()
-    } catch (err) {
+    } catch {
       // Repli statique (Cloudflare Pages) : moteur de structuration JS local.
-      try {
-        const { structureTextClient } = await import('../../lib/structurizerClient')
-        onDoc(structureTextClient(text))
-        onStage?.(3)
-        if (reveal) onPreview?.()
-        setFallbackMode(true)
-      } catch {
-        setError(String(err instanceof Error ? err.message : err))
-        onDoc(null)
-      }
+      onDoc(structureTextClient(text))
+      onStage?.(3)
+      if (reveal) onPreview?.()
+      setFallbackMode(true)
     } finally {
       setBusy(null)
     }
   }, [text, onDoc, onPreview, onStage])
 
-  // L’aperçu se met à jour automatiquement après une courte pause de saisie.
-  useEffect(() => {
-    if (!text.trim() || text === lastStructuredText.current) return
-    const timer = window.setTimeout(() => {
-      void structure()
-    }, 700)
-    return () => window.clearTimeout(timer)
-  }, [text, structure])
-
-  const updateText = (value: string) => {
-    setText(value)
-    setError(null)
-    onStage?.(1)
-    onDoc(null)
+  const formatSelection = (marker: '**' | '*' | '++') => {
+    const input = sourceRef.current
+    if (!input) return
+    const start = input.selectionStart
+    const end = input.selectionEnd
+    const selected = text.slice(start, end) || 'texte'
+    const next = `${text.slice(0, start)}${marker}${selected}${marker}${text.slice(end)}`
+    updateText(next)
+    requestAnimationFrame(() => {
+      input.focus()
+      input.setSelectionRange(start + marker.length, start + marker.length + selected.length)
+    })
   }
 
   const clearDocument = () => {
@@ -160,7 +156,6 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
     setFallbackMode(false)
     setError(null)
     onStage?.(1)
-    lastStructuredText.current = ''
     onDoc(null)
   }
 
@@ -304,7 +299,15 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
       {error && <p className="error">{error}</p>}
 
       <label className="source-label" htmlFor="document-source">Contenu du document</label>
+      <div className="editor-tools" role="toolbar" aria-label="Outils de mise en forme du texte">
+        <span className="editor-tools-label">Mise en forme</span>
+        <button type="button" className="format-tool" onClick={() => formatSelection('**')} title="Gras">G</button>
+        <button type="button" className="format-tool italic" onClick={() => formatSelection('*')} title="Italique">I</button>
+        <button type="button" className="format-tool underline" onClick={() => formatSelection('++')} title="Souligner la sélection">S</button>
+        <span className="muted format-help">Sélectionnez un passage puis choisissez un outil</span>
+      </div>
       <textarea
+        ref={sourceRef}
         id="document-source"
         className="source"
         value={text}

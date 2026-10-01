@@ -197,10 +197,11 @@ def esc(s: str) -> str:
 
 
 def inline_markup(s: str) -> str:
-    """Markdown inline minimal : **gras**, *italie*, `code`."""
+    """Markdown inline minimal : **gras**, *italie*, ++souligné++, `code`."""
     out = esc(s)
     out = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", out)
     out = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<em>\1</em>", out)
+    out = re.sub(r"\+\+(.+?)\+\+", r"<u>\1</u>", out)
     out = re.sub(r"`([^`]+?)`", r"<code>\1</code>", out)
     return out
 

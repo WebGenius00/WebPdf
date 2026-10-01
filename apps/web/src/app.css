@@ -517,3 +517,12 @@ body {
 /* Fragmentation éditoriale : un bloc et son titre restent ensemble autant que possible. */
 .preview-block, .page table, .page figure, .page blockquote, .page pre { break-inside: avoid; page-break-inside: avoid; }
 .page h1, .page h2, .page h3 { break-after: avoid; page-break-after: avoid; }
+
+/* Outils de rédaction : le soulignement est explicite, jamais appliqué aux paragraphes par défaut. */
+.editor-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin: 10px 0 7px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); }
+.editor-tools-label { color: var(--muted); font-size: 11px; font-weight: 700; margin-right: 2px; }
+.format-tool { min-width: 30px; height: 28px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); font: 700 13px Georgia, serif; cursor: pointer; }
+.format-tool:hover, .format-tool:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+.format-tool.italic { font-style: italic; }
+.format-tool.underline { text-decoration: underline; }
+.format-help { font-size: 11px; margin-left: 4px; }

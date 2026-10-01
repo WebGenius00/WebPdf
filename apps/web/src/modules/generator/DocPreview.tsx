@@ -16,11 +16,12 @@ function paperPixels(paper: 'a4' | 'letter', orientation: 'portrait' | 'landscap
 }
 
 function InlineText({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\+\+[^+]+\+\+)/g)
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>
     if (part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>
     if (part.startsWith('`') && part.endsWith('`')) return <code key={i}>{part.slice(1, -1)}</code>
+    if (part.startsWith('++') && part.endsWith('++')) return <u key={i}>{part.slice(2, -2)}</u>
     return <span key={i}>{part}</span>
   })
 }
