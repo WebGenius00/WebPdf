@@ -448,3 +448,79 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .app-main.tab-panel-generate, .app-main.tab-panel-read { animation: none; }
 }
+
+/* ---------- Atmosphère terminal / matrice — effets purement décoratifs ---------- */
+body { position: relative; isolation: isolate; overflow-x: hidden; }
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .16;
+  background: repeating-linear-gradient(180deg, transparent 0, transparent 3px, rgb(53 242 140 / .035) 4px, transparent 5px);
+  mix-blend-mode: screen;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 45%, rgb(0 8 5 / .28) 100%);
+}
+.app { position: relative; z-index: 1; }
+.app::before {
+  content: '01001011 01000101 01011001  //  SYSTEM.READY  //  01001110 01000101 01010100';
+  position: fixed;
+  top: 74px;
+  right: 2vw;
+  z-index: 0;
+  max-width: 44vw;
+  overflow: hidden;
+  color: var(--accent);
+  font: 10px/1.8 ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: .18em;
+  white-space: nowrap;
+  opacity: .055;
+  transform: rotate(90deg) translateX(100%);
+  transform-origin: top right;
+  pointer-events: none;
+  user-select: none;
+  animation: matrix-drift 18s linear infinite;
+}
+.app-header::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: .65;
+  pointer-events: none;
+}
+.api-status.up::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  border-radius: inherit;
+  animation: terminal-pulse 2.8s ease-out infinite;
+  pointer-events: none;
+}
+.api-status { position: relative; }
+@keyframes matrix-drift {
+  0% { opacity: .025; transform: rotate(90deg) translateX(100%); }
+  50% { opacity: .06; }
+  100% { opacity: .025; transform: rotate(90deg) translateX(-12%); }
+}
+@keyframes terminal-pulse {
+  0%, 55% { opacity: 0; transform: scale(.96); }
+  70% { opacity: .7; }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+@media (max-width: 760px) {
+  .app::before { right: -26vw; opacity: .035; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app::before, .api-status.up::after { animation: none; }
+}
