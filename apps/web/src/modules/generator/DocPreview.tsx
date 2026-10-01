@@ -6,6 +6,7 @@ const PAPER_PIXELS = {
   a4: { width: 794, height: 1123 },
   letter: { width: 816, height: 1056 },
 } as const
+const PAGE_VERTICAL_PADDING = 56
 
 function paperPixels(paper: 'a4' | 'letter', orientation: 'portrait' | 'landscape') {
   const size = PAPER_PIXELS[paper]
@@ -80,7 +81,8 @@ export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait'
       let page = 0
       for (let index = 0; index < children.length; index += 1) {
         const bottom = children[index].getBoundingClientRect().bottom - top
-        if (groups[page].length > 0 && bottom > (page + 1) * paperSize.height) {
+        const pageContentLimit = (page + 1) * paperSize.height - PAGE_VERTICAL_PADDING
+        if (groups[page].length > 0 && bottom > pageContentLimit) {
           page += 1
           groups[page] = []
         }
