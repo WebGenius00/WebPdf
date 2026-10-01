@@ -157,9 +157,34 @@ body {
 .hero h2 { margin: 0 0 6px; font-size: clamp(22px, 3.2vw, 32px); letter-spacing: -0.03em; line-height: 1.15; }
 .hero h2 span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .hero p { margin: 0; color: var(--muted); font-size: 15px; max-width: 62ch; }
+.editor-stage { position: relative; }
 .split { display: grid; grid-template-columns: minmax(340px, 44%) 1fr; gap: 20px; align-items: start; }
+.preview-overlay {
+  position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 24px;
+  background: rgb(15 23 42 / 0.58); backdrop-filter: blur(5px); animation: rise 0.2s ease both;
+}
+.preview-dialog {
+  display: flex; flex-direction: column; width: min(1180px, 100%); height: min(92vh, 980px);
+  overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 24px 80px rgb(15 23 42 / 0.32);
+}
+.preview-dialog-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 22px;
+  border-bottom: 1px solid var(--line); background: var(--panel);
+}
+.preview-dialog-header h2 { margin: 0 0 4px; font-size: 21px; }
+.preview-dialog-header p { margin: 0; }
+.eyebrow { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.preview-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.preview-dialog > .preview { flex: 1; max-height: none; border: 0; border-radius: 0; }
 @media (max-width: 900px) { .split { grid-template-columns: 1fr; } .app-header { flex-wrap: wrap; gap: 12px; padding: 10px 14px; } .app-main { padding: 14px; } }
 @media (max-width: 560px) { .brand small { display: none; } .tabs button { padding: 8px 10px; } .tabs button span { display: none; } }
+@media (max-width: 760px) {
+  .preview-overlay { padding: 0; }
+  .preview-dialog { width: 100%; height: 100%; border-radius: 0; }
+  .preview-dialog-header { align-items: flex-start; flex-direction: column; padding: 16px; }
+  .preview-actions { width: 100%; justify-content: stretch; }
+  .preview-actions .btn { flex: 1; }
+}
 
 /* ---------- Boutons / barres d'outils ---------- */
 .btn {

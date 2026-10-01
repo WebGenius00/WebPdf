@@ -9,7 +9,7 @@
  * change d'onglet, et pour éviter de re-interroger l'API.
  */
 
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { DEFAULT_RENDER_OPTIONS, health, type RenderOptions } from './lib/api'
 import type { Doc } from './lib/doc'
 import { Generator } from './modules/generator/Generator'
@@ -80,6 +80,8 @@ export default function App() {
   const [doc, setDoc] = useState<Doc | null>(null)
   const [apiUp, setApiUp] = useState<boolean | null>(null)
   const [theme, setTheme] = useState<Theme>(readStoredTheme)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [downloadHandler, setDownloadHandler] = useState<(() => Promise<void>) | null>(null)
 
   // Applique le thème sur <html> (auto = suit le système) et le mémorise.
   useEffect(() => {
@@ -94,6 +96,9 @@ export default function App() {
   }, [theme])
   // Options de rendu partagées entre le générateur (UI) et l'API.
   const [renderOptions, setRenderOptions] = useState<RenderOptions>(DEFAULT_RENDER_OPTIONS)
+  const registerDownload = useCallback((handler: (() => Promise<void>) | null) => {
+    setDownloadHandler(() => handler)
+  }, [])
 
   // Sonde backend périodique : bandeau d'avertissement si API injoignable.
   useEffect(() => {
@@ -176,9 +181,34 @@ export default function App() {
           )}
         </section>
         {tab === 'generate' ? (
-          <div className="split">
-            <Generator doc={doc} onDoc={setDoc} options={renderOptions} onOptions={setRenderOptions} />
-            <DocPreview doc={doc} layout={renderOptions.layout} />
+          <div className="editor-stage">
+            <Generator
+              doc={doc}
+              onDoc={setDoc}
+              options={renderOptions}
+              onOptions={setRenderOptions}
+              onPreview={() => setPreviewOpen(true)}
+              onOpenPreview={() => setPreviewOpen(true)}
+              onDownloadChange={registerDownload}
+            />
+            {doc && previewOpen && (
+              <div className="preview-overlay" role="dialog" aria-modal="true" aria-label="Aperçu du PDF">
+                <div className="preview-dialog">
+                  <div className="preview-dialog-header">
+                    <div>
+                      <p className="eyebrow">Document structuré</p>
+                      <h2>Aperçu avant génération</h2>
+                      <p className="muted">Vérifiez la mise en page, puis téléchargez le PDF ou revenez modifier votre document.</p>
+                    </div>
+                    <div className="preview-actions">
+                      <button type="button" className="btn" onClick={() => setPreviewOpen(false)}>← Retour à l’édition</button>
+                      <button type="button" className="btn primary" onClick={() => void downloadHandler?.()} disabled={!downloadHandler}>⬇ Télécharger le PDF</button>
+                    </div>
+                  </div>
+                  <DocPreview doc={doc} layout={renderOptions.layout} />
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <Suspense fallback={<p className="muted" style={{ padding: '2rem' }}>Chargement du lecteur…</p>}>

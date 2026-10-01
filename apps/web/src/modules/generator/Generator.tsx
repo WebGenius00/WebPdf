@@ -80,14 +80,18 @@ interface GeneratorProps {
   onDoc: (doc: Doc | null) => void
   options: RenderOptions
   onOptions: (o: RenderOptions) => void
+  onPreview?: () => void
+  onOpenPreview?: () => void
+  onDownloadChange?: (handler: (() => Promise<void>) | null) => void
 }
 
-export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
+export function Generator({ doc, onDoc, options, onOptions, onPreview, onOpenPreview, onDownloadChange }: GeneratorProps) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'structure' | 'pdf' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [fallbackMode, setFallbackMode] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const lastStructuredText = useRef('')
   const header = options.header ?? DEFAULT_RENDER_OPTIONS.header!
   const footer = options.footer ?? DEFAULT_RENDER_OPTIONS.footer!
   const layout = options.layout ?? DEFAULT_RENDER_OPTIONS.layout!
@@ -109,17 +113,20 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
   }, [onDoc])
 
   /** Structure le texte : backend prioritaire, repli 100 % client si indisponible. */
-  const structure = useCallback(async () => {
+  const structure = useCallback(async (reveal = false) => {
     if (!text.trim()) return
+    lastStructuredText.current = text
     setBusy('structure')
     setError(null)
     try {
       onDoc(await structureText(text))
+      if (reveal) onPreview?.()
     } catch (err) {
       // Repli statique (Cloudflare Pages) : moteur de structuration JS local.
       try {
         const { structureTextClient } = await import('../../lib/structurizerClient')
         onDoc(structureTextClient(text))
+        if (reveal) onPreview?.()
         setFallbackMode(true)
       } catch {
         setError(String(err instanceof Error ? err.message : err))
@@ -128,16 +135,16 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
     } finally {
       setBusy(null)
     }
-  }, [text, onDoc])
+  }, [text, onDoc, onPreview])
 
   // L’aperçu se met à jour automatiquement après une courte pause de saisie.
   useEffect(() => {
-    if (!text.trim()) return
+    if (!text.trim() || text === lastStructuredText.current) return
     const timer = window.setTimeout(() => {
-      if (!busy) void structure()
+      void structure()
     }, 700)
     return () => window.clearTimeout(timer)
-  }, [text, busy, structure])
+  }, [text, structure])
 
   /** Télécharge le Blob PDF sous un nom dérivé du titre du document. */
   const download = useCallback(async () => {
@@ -179,6 +186,11 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
     }
   }, [text, doc, options, onDoc, fallbackMode])
 
+  useEffect(() => {
+    onDownloadChange?.(download)
+    return () => onDownloadChange?.(null)
+  }, [download, onDownloadChange])
+
   return (
     <section className="generator">
       <div className="gen-toolbar">
@@ -218,13 +230,14 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
       </div>
 
       <div className="gen-toolbar">
-        <button className="btn primary" onClick={structure} disabled={busy !== null || !text.trim()}>
+        <button className="btn primary" onClick={() => void structure(true)} disabled={busy !== null || !text.trim()}>
           {busy === 'structure' ? 'Structuration…' : '✦ Structurer'}
         </button>
         <button className="btn" onClick={download} disabled={busy !== null || !text.trim()}>
           {busy === 'pdf' ? 'Génération…' : '⬇ Télécharger le PDF'}
         </button>
-        {doc && !fallbackMode && <span className="muted">Aperçu structuré prêt — le PDF reprendra exactement cette structure.</span>}
+        {doc && <button type="button" className="btn" onClick={onOpenPreview}>Voir l’aperçu</button>}
+        {doc && !fallbackMode && <span className="muted">Document structuré prêt à être vérifié ou téléchargé.</span>}
         {fallbackMode && (
           <span className="muted" title="Le backend Python est injoignable : structuration et rendu PDF exécutés localement dans le navigateur.">
             ⚡ Mode local (navigateur) — activez l'API pour le rendu serveur premium.
