@@ -9,7 +9,7 @@
  *   4. le téléchargement capture cette feuille visible, sans second renderer.
  */
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   DEFAULT_RENDER_OPTIONS,
   structureText,
@@ -81,15 +81,24 @@ interface GeneratorProps {
   options: RenderOptions
   onOptions: (o: RenderOptions) => void
   onPreview?: () => void
+  onCursorContext?: (context: string) => void
 }
 
-export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }: GeneratorProps) {
-  const [text, setText] = useState('')
+const AUTOSAVE_KEY = 'pdf-studio-draft-v1'
+
+export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, onCursorContext }: GeneratorProps) {
+  const [text, setText] = useState(() => { try { return localStorage.getItem(AUTOSAVE_KEY) ?? '' } catch { return '' } })
+  const [history, setHistory] = useState<string[]>(() => [(() => { try { return localStorage.getItem(AUTOSAVE_KEY) ?? '' } catch { return '' } })()])
+  const [historyIndex, setHistoryIndex] = useState(0)
+  const [query, setQuery] = useState('')
+  const [replacement, setReplacement] = useState('')
+  const [savedAt, setSavedAt] = useState<number | null>(null)
   const [busy, setBusy] = useState<'structure' | 'pdf' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [fallbackMode, setFallbackMode] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const sourceRef = useRef<HTMLTextAreaElement>(null)
+  const restoredRef = useRef(false)
   const header = options.header ?? DEFAULT_RENDER_OPTIONS.header!
   const footer = options.footer ?? DEFAULT_RENDER_OPTIONS.footer!
   const layout = options.layout ?? DEFAULT_RENDER_OPTIONS.layout!
@@ -99,12 +108,30 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
     onOptions({ ...options, [kind]: { ...current, ...patch } })
   }
 
-  const updateText = useCallback((value: string) => {
+  const updateText = useCallback((value: string, record = true) => {
     setText(value)
     setError(null)
     onStage?.(1)
     onDoc(value.trim() ? structureTextClient(value) : null)
-  }, [onDoc, onStage])
+    if (record) {
+      setHistory((current) => [...current.slice(0, historyIndex + 1), value].slice(-80))
+      setHistoryIndex((current) => Math.min(current + 1, 79))
+    }
+  }, [historyIndex, onDoc, onStage])
+
+  useEffect(() => {
+    if (restoredRef.current) return
+    restoredRef.current = true
+    if (!text.trim()) return
+    onDoc(structureTextClient(text))
+  }, [onDoc, text])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try { localStorage.setItem(AUTOSAVE_KEY, text); setSavedAt(Date.now()) } catch { /* stockage indisponible */ }
+    }, 500)
+    return () => window.clearTimeout(timer)
+  }, [text])
 
   /** Import fichier .txt / .md côté client (lecture locale, aucun upload). */
   const importFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,6 +164,34 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
     }
   }, [text, onDoc, onPreview, onStage])
 
+  const undo = () => {
+    if (historyIndex <= 0) return
+    const nextIndex = historyIndex - 1
+    setHistoryIndex(nextIndex)
+    updateText(history[nextIndex], false)
+  }
+
+  const redo = () => {
+    if (historyIndex >= history.length - 1) return
+    const nextIndex = historyIndex + 1
+    setHistoryIndex(nextIndex)
+    updateText(history[nextIndex], false)
+  }
+
+  const replaceAll = () => {
+    if (!query) return
+    const next = text.split(query).join(replacement)
+    if (next !== text) updateText(next)
+  }
+
+  const reportCursorContext = () => {
+    const input = sourceRef.current
+    if (!input || !onCursorContext) return
+    const before = text.slice(0, input.selectionStart)
+    const paragraphs = before.split(/\n\s*\n/)
+    onCursorContext((paragraphs[paragraphs.length - 1] ?? '').trim().slice(0, 120))
+  }
+
   const formatSelection = (marker: '**' | '*' | '++') => {
     const input = sourceRef.current
     if (!input) return
@@ -153,6 +208,8 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
 
   const clearDocument = () => {
     setText('')
+    setHistory([''])
+    setHistoryIndex(0)
     setFallbackMode(false)
     setError(null)
     onStage?.(1)
@@ -177,6 +234,8 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
         <button className="btn subtle-action" onClick={clearDocument} disabled={!text} title="Effacer le contenu et recommencer">
           Effacer
         </button>
+        <button className="btn subtle-action" onClick={undo} disabled={historyIndex === 0} title="Annuler (Ctrl+Z)">↶ Annuler</button>
+        <button className="btn subtle-action" onClick={redo} disabled={historyIndex >= history.length - 1} title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
         <span className="spacer" />
         <span className="toolbar-label">Présentation</span>
         <label className="muted">
@@ -306,12 +365,28 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
         <button type="button" className="format-tool underline" onClick={() => formatSelection('++')} title="Souligner la sélection">S</button>
         <span className="muted format-help">Sélectionnez un passage puis choisissez un outil</span>
       </div>
+      <details className="search-replace">
+        <summary>Rechercher et remplacer</summary>
+        <div className="search-replace-fields">
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Texte à rechercher" aria-label="Texte à rechercher" />
+          <input value={replacement} onChange={(e) => setReplacement(e.target.value)} placeholder="Remplacer par" aria-label="Remplacer par" />
+          <button type="button" className="btn" onClick={replaceAll} disabled={!query}>Remplacer tout</button>
+        </div>
+        {query && <span className="muted search-count">{text.split(query).length - 1} occurrence(s)</span>}
+      </details>
       <textarea
         ref={sourceRef}
         id="document-source"
         className="source"
         value={text}
         onChange={(e) => updateText(e.target.value)}
+        onKeyDown={(e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo() }
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo() }
+        }}
+        onSelect={reportCursorContext}
+        onKeyUp={reportCursorContext}
+        onClick={reportCursorContext}
         placeholder={
           'Collez ici votre texte brut…\n\n' +
           'Le moteur détecte automatiquement titres, listes, tableaux, encadrés,\n' +
@@ -324,6 +399,7 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
       />
       <p id="document-source-help" className="muted stats">
         {text.trim() ? `${text.trim().split(/\s+/).length} mots · ${text.length} caractères` : 'Aucun texte saisi'}
+        {savedAt ? ` · Brouillon sauvegardé à ${new Date(savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
       </p>
     </section>
   )

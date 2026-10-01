@@ -1,5 +1,5 @@
 export interface PreviewQualityIssue {
-  type: 'empty-page' | 'orphan-heading'
+  type: 'empty-page' | 'orphan-heading' | 'overflow' | 'empty-heading'
   page: number
   message: string
 }
@@ -20,10 +20,17 @@ export function inspectPreviewQuality(root: HTMLElement): PreviewQualityIssue[] 
     }
 
     const blocks = Array.from(article.querySelectorAll<HTMLElement>(':scope > .preview-block'))
+    if (article.scrollHeight > article.clientHeight + 2) {
+      issues.push({ type: 'overflow', page: pageNumber, message: `Le contenu dépasse la limite visible de la page ${pageNumber}.` })
+    }
     const pageBottom = article.getBoundingClientRect().bottom
     blocks.forEach((block, blockIndex) => {
       const heading = block.querySelector<HTMLElement>('h1, h2, h3')
       if (!heading) return
+      if (!heading.textContent?.trim()) {
+        issues.push({ type: 'empty-heading', page: pageNumber, message: `Un titre vide est présent sur la page ${pageNumber}.` })
+        return
+      }
       const headingBottom = heading.getBoundingClientRect().bottom
       const hasFollowingContent = blocks.slice(blockIndex + 1).some((next) => Boolean(next.textContent?.replace(/\s+/g, '').trim()))
       const remainingSpace = pageBottom - headingBottom

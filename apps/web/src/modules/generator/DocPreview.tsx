@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Block, Doc } from '../../lib/doc'
 import type { LayoutOptions } from '../../lib/api'
 
@@ -59,16 +59,22 @@ interface DocPreviewProps {
   paper?: 'a4' | 'letter'
   orientation?: 'portrait' | 'landscape'
   font?: 'serif' | 'sans' | 'modern' | 'mono'
+  focusText?: string
   pageRef?: (node: HTMLElement | null) => void
 }
 
-export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait', font = 'serif', pageRef }: DocPreviewProps) {
+export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait', font = 'serif', focusText = '', pageRef }: DocPreviewProps) {
   const previewRef = useRef<HTMLElement>(null)
   const measureRef = useRef<HTMLElement>(null)
   const [scale, setScale] = useState(1)
   const [pageGroups, setPageGroups] = useState<number[][] | null>(null)
   const paperSize = paperPixels(paper, orientation)
   const tocLength = doc?.toc.length ?? 0
+
+  useEffect(() => {
+    if (!focusText.trim()) return
+    document.querySelector<HTMLElement>('.preview-block.preview-focus')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [focusText])
 
   useLayoutEffect(() => {
     const preview = previewRef.current
@@ -118,7 +124,11 @@ export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait'
         {groups.map((group, pageIndex) => <div className="page-sheet" key={pageIndex} style={{ width: paperSize.width, height: paperSize.height, top: pageIndex * (paperSize.height + 28) * scale, transform: `translateX(-50%) scale(${scale})` }}>
           <article className={pageClass} style={{ width: paperSize.width, minHeight: paperSize.height }}>
             {pageIndex === 0 && <><Cover metadata={metadata}/><TableOfContents toc={toc}/></>}
-            {group.map((blockIndex) => <div className="preview-block" key={blockIndex}><BlockView block={blocks[blockIndex]} /></div>)}
+            {group.map((blockIndex) => {
+              const blockText = JSON.stringify(blocks[blockIndex]).toLowerCase()
+              const focused = focusText.trim().length > 8 && blockText.includes(focusText.trim().toLowerCase())
+              return <div className={`preview-block${focused ? ' preview-focus' : ''}`} key={blockIndex}><BlockView block={blocks[blockIndex]} /></div>
+            })}
           </article>
         </div>)}
         <article ref={measureRef} className={`${pageClass} preview-measure`} style={{ width: paperSize.width, minHeight: paperSize.height }} aria-hidden="true"><Cover metadata={metadata}/><TableOfContents toc={toc}/>{blocks.map((block, index) => <div className="preview-block" key={index}><BlockView block={block} /></div>)}</article>

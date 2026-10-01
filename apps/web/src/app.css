@@ -535,3 +535,11 @@ blockquote { border-left: 0; }
 thead th { background: transparent; color: inherit; }
 tbody tr:nth-child(even) { background: transparent; }
 .callout.note, .callout.tip, .callout.warning, .callout.info-note { border-color: transparent; background: transparent; }
+
+.search-replace { margin: 8px 0 10px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: color-mix(in srgb, var(--panel-2) 80%, transparent); }
+.search-replace summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.search-replace-fields { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 9px; }
+.search-replace-fields input { min-width: 150px; flex: 1; min-height: 34px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink); }
+.search-count { display: block; margin-top: 6px; font-size: 11px; }
+.preview-block.preview-focus { outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent); outline-offset: 7px; border-radius: 4px; animation: preview-focus-pulse 1.2s ease-out; }
+@keyframes preview-focus-pulse { from { background: color-mix(in srgb, var(--accent) 18%, transparent); } to { background: transparent; } }
