@@ -196,16 +196,24 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
     onCursorContext((paragraphs[paragraphs.length - 1] ?? '').trim().slice(0, 120))
   }
 
+  const closeShortcut = (target: HTMLElement | null) => {
+    if (!target) return
+    target.classList.add('shortcut-closing')
+    window.setTimeout(() => {
+      target.classList.remove('shortcut-visible', 'shortcut-closing')
+      if (target instanceof HTMLDetailsElement) target.open = false
+    }, 220)
+  }
+
   const openShortcut = (target: HTMLElement | null) => {
     if (!target) return
     const wasOpen = target instanceof HTMLDetailsElement ? target.open : target.classList.contains('shortcut-visible')
     document.querySelectorAll<HTMLElement>('.shortcut-only, .shortcut-tools').forEach((panel) => {
       if (panel !== target) {
-        panel.classList.remove('shortcut-visible')
-        if (panel instanceof HTMLDetailsElement) panel.open = false
+        if (panel instanceof HTMLDetailsElement ? panel.open : panel.classList.contains('shortcut-visible')) closeShortcut(panel)
       }
     })
-    if (wasOpen) return
+    if (wasOpen) { closeShortcut(target); return }
     if (target instanceof HTMLDetailsElement) target.open = true
     else target.classList.add('shortcut-visible')
     target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -357,6 +365,7 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         >
           Réinitialiser les en-têtes et pieds de page
         </button>
+        <button type="button" className="shortcut-close" onClick={() => closeShortcut(furnitureRef.current)}>Fermer les options</button>
       </details>
 
       <details ref={layoutRef} className="print-customizer layout-customizer shortcut-only">
@@ -382,6 +391,7 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         <button type="button" className="btn reset-furniture" onClick={() => onOptions({ ...options, layout: { ...DEFAULT_RENDER_OPTIONS.layout! } })}>
           Réinitialiser la mise en page
         </button>
+        <button type="button" className="shortcut-close" onClick={() => closeShortcut(layoutRef.current)}>Fermer les options</button>
       </details>
 
       {error && <p className="error">{error}</p>}
@@ -393,6 +403,7 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         <button type="button" className="format-tool italic" onClick={() => formatSelection('*')} title="Italique">I</button>
         <button type="button" className="format-tool underline" onClick={() => formatSelection('++')} title="Souligner la sélection">S</button>
         <span className="muted format-help">Sélectionnez un passage puis choisissez un outil</span>
+        <button type="button" className="shortcut-close" onClick={() => closeShortcut(formatRef.current)}>Fermer</button>
       </div>
       <details ref={searchRef} className="search-replace shortcut-only">
         <summary>Rechercher et remplacer</summary>
@@ -402,6 +413,7 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
           <button type="button" className="btn" onClick={replaceAll} disabled={!query}>Remplacer tout</button>
         </div>
         {query && <span className="muted search-count">{text.split(query).length - 1} occurrence(s)</span>}
+        <button type="button" className="shortcut-close" onClick={() => closeShortcut(searchRef.current)}>Fermer les options</button>
       </details>
       <textarea
         ref={sourceRef}

@@ -562,3 +562,13 @@ tbody tr:nth-child(even) { background: transparent; }
 .generator > .shortcut-only:not([open]) { display: none; }
 .generator > .shortcut-tools { display: none; }
 .generator > .shortcut-tools.shortcut-visible { display: flex; }
+
+/* Transition des options : apparition et fermeture clairement perceptibles. */
+.shortcut-only[open], .shortcut-tools.shortcut-visible { animation: shortcut-open 220ms var(--ease) both; transform-origin: top center; }
+.shortcut-only.shortcut-closing { display: block !important; animation: shortcut-close 220ms var(--ease) both; pointer-events: none; }
+.shortcut-tools.shortcut-closing { display: flex !important; animation: shortcut-close 220ms var(--ease) both; pointer-events: none; }
+.shortcut-close { display: inline-flex; align-items: center; justify-content: center; margin-top: 10px; min-height: 30px; padding: 5px 11px; border: 1px solid var(--line); border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: 11px; }
+.shortcut-close:hover, .shortcut-close:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+@keyframes shortcut-open { from { opacity: 0; transform: translateY(-7px) scaleY(.97); } to { opacity: 1; transform: translateY(0) scaleY(1); } }
+@keyframes shortcut-close { from { opacity: 1; transform: translateY(0) scaleY(1); } to { opacity: 0; transform: translateY(-5px) scaleY(.97); } }
+@media (prefers-reduced-motion: reduce) { .shortcut-only[open], .shortcut-tools.shortcut-visible, .shortcut-only.shortcut-closing, .shortcut-tools.shortcut-closing { animation: none; } }
