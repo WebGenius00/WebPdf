@@ -13,6 +13,11 @@ const PAPER_PIXELS = {
   letter: { width: 816, height: 1056 },
 } as const
 
+function paperPixels(paper: 'a4' | 'letter', orientation: 'portrait' | 'landscape') {
+  const size = PAPER_PIXELS[paper]
+  return orientation === 'landscape' ? { width: size.height, height: size.width } : size
+}
+
 function InlineText({ text }: { text: string }): ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)
   return parts.map((part, i) => {
@@ -45,16 +50,17 @@ interface DocPreviewProps {
   doc: Doc | null
   layout?: LayoutOptions
   paper?: 'a4' | 'letter'
+  orientation?: 'portrait' | 'landscape'
   font?: 'serif' | 'sans' | 'modern' | 'mono'
   pageRef?: (node: HTMLElement | null) => void
 }
 
-export function DocPreview({ doc, layout, paper = 'a4', font = 'serif', pageRef }: DocPreviewProps) {
+export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait', font = 'serif', pageRef }: DocPreviewProps) {
   const previewRef = useRef<HTMLElement>(null)
   const articleRef = useRef<HTMLElement>(null)
   const [scale, setScale] = useState(1)
-  const [contentHeight, setContentHeight] = useState<number>(PAPER_PIXELS[paper].height)
-  const paperSize = PAPER_PIXELS[paper]
+  const paperSize = paperPixels(paper, orientation)
+  const [contentHeight, setContentHeight] = useState<number>(paperSize.height)
 
   useLayoutEffect(() => {
     const preview = previewRef.current
@@ -71,7 +77,7 @@ export function DocPreview({ doc, layout, paper = 'a4', font = 'serif', pageRef 
     observer.observe(preview)
     observer.observe(article)
     return () => observer.disconnect()
-  }, [doc, paper, paperSize.height, paperSize.width])
+  }, [doc, paper, orientation, paperSize.height, paperSize.width])
 
   if (!doc) return <section className="preview"><p className="muted placeholder">L’aperçu du document structuré apparaîtra ici après structuration.</p></section>
 
@@ -85,7 +91,7 @@ export function DocPreview({ doc, layout, paper = 'a4', font = 'serif', pageRef 
   return (
     <section ref={previewRef} className="preview" aria-live="polite">
       <div className="preview-stage" style={{ height: stageHeight }}>
-        <article ref={setPageRef} className={`page paper-${paper} font-${font} density-${layout?.density ?? 'standard'} title-spacing-${layout?.titleSpacing ?? 'standard'} align-${layout?.paragraphAlign ?? 'justify'}`} style={{ width: paperSize.width, minHeight: paperSize.height, transform: `scale(${scale})` }}>
+        <article ref={setPageRef} className={`page paper-${paper} orientation-${orientation} font-${font} density-${layout?.density ?? 'standard'} title-spacing-${layout?.titleSpacing ?? 'standard'} align-${layout?.paragraphAlign ?? 'justify'}`} style={{ width: paperSize.width, minHeight: paperSize.height, transform: `scale(${scale})` }}>
           <header className="cover-mini"><h1 className="doc-title">{metadata.title ?? 'Document sans titre'}</h1>{metadata.subtitle && <p className="subtitle">{metadata.subtitle}</p>}{metadata.author && <p className="byline">{metadata.author}</p>}</header>
           {toc.length > 0 && <nav className="toc" aria-label="Table des matières"><h2>Sommaire</h2><ul>{toc.map((entry) => <li key={entry.id} data-level={entry.level}><a href={`#${entry.id}`}><span className="num">{entry.number}</span> {entry.text}</a></li>)}</ul></nav>}
           {blocks.map((block, i) => <BlockView key={i} block={block} />)}

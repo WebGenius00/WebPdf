@@ -217,6 +217,16 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
             <option value="mono">Monospace</option>
           </select>
         </label>
+        <label className="muted">
+          Orientation{' '}
+          <select
+            value={options.orientation ?? 'portrait'}
+            onChange={(e) => onOptions({ ...options, orientation: e.target.value as RenderOptions['orientation'] })}
+          >
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Paysage</option>
+          </select>
+        </label>
       </div>
 
       <div className="gen-toolbar">

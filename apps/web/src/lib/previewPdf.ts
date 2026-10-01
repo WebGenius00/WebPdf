@@ -11,6 +11,11 @@ const PAPER: Record<'a4' | 'letter', PaperSize> = {
   letter: { width: 215.9, height: 279.4 },
 }
 
+function paperSize(paper: 'a4' | 'letter', orientation: 'portrait' | 'landscape'): PaperSize {
+  const size = PAPER[paper] ?? PAPER.a4
+  return orientation === 'landscape' ? { width: size.height, height: size.width } : size
+}
+
 function safeFilename(title: string): string {
   return `${title.toLowerCase().replace(/[^\wà-ÿ-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'document'}.pdf`
 }
@@ -36,9 +41,10 @@ export async function downloadPreviewPdf(
   previewPage: HTMLElement,
   paper: 'a4' | 'letter' = 'a4',
   title = 'document',
+  orientation: 'portrait' | 'landscape' = 'portrait',
   onProgress?: (progress: number) => void,
 ): Promise<void> {
-  const size = PAPER[paper] ?? PAPER.a4
+  const size = paperSize(paper, orientation)
   onProgress?.(4)
   const canvas = await html2canvas(previewPage, {
     backgroundColor: '#ffffff',
@@ -52,7 +58,7 @@ export async function downloadPreviewPdf(
   })
   onProgress?.(48)
 
-  const pdf = new jsPDF({ unit: 'mm', format: paper === 'letter' ? 'letter' : 'a4', orientation: 'portrait' })
+  const pdf = new jsPDF({ unit: 'mm', format: paper === 'letter' ? 'letter' : 'a4', orientation })
   const pageHeightPx = Math.max(1, Math.floor(canvas.width * size.height / size.width))
   const boundaries = visibleBlockBoundaries(previewPage, canvas)
   let sourceTop = 0
