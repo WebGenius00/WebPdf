@@ -7,7 +7,19 @@
  * entre l'aperçu écran et le PDF final.
  */
 
+import type { ReactNode } from 'react'
 import type { Block, Doc } from '../../lib/doc'
+
+/** Même sous-ensemble Markdown inline que le renderer PDF Python. */
+function InlineText({ text }: { text: string }): ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>
+    if (part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>
+    if (part.startsWith('`') && part.endsWith('`')) return <code key={i}>{part.slice(1, -1)}</code>
+    return <span key={i}>{part}</span>
+  })
+}
 
 /** Rend un bloc selon son type — exhaustive par construction du switch. */
 function BlockView({ block }: { block: Block }) {
@@ -17,29 +29,29 @@ function BlockView({ block }: { block: Block }) {
       return (
         <Tag id={block.id}>
           {block.number && <span className="num">{block.number} </span>}
-          {block.text}
+          <InlineText text={block.text} />
         </Tag>
       )
     }
     case 'paragraph':
-      return <p>{block.text}</p>
+      return <p><InlineText text={block.text} /></p>
     case 'list':
       return block.ordered ? (
-        <ol>{block.items.map((it, i) => <li key={i}>{it}</li>)}</ol>
+        <ol>{block.items.map((it, i) => <li key={i}><InlineText text={it} /></li>)}</ol>
       ) : (
-        <ul>{block.items.map((it, i) => <li key={i}>{it}</li>)}</ul>
+        <ul>{block.items.map((it, i) => <li key={i}><InlineText text={it} /></li>)}</ul>
       )
     case 'definition':
       return (
         <p className="definition">
-          <b>{block.term} :</b> {block.text}
+          <b><InlineText text={block.term} /> :</b> <InlineText text={block.text} />
         </p>
       )
     case 'callout':
       return (
         <aside className={`callout ${block.variant}`}>
-          {block.title && <b>{block.title}</b>}
-          <p>{block.text}</p>
+          {block.title && <b><InlineText text={block.title} /></b>}
+          <p><InlineText text={block.text} /></p>
         </aside>
       )
     case 'table':
@@ -47,12 +59,12 @@ function BlockView({ block }: { block: Block }) {
         <table>
           {block.header.length > 0 && (
             <thead>
-              <tr>{block.header.map((h, i) => <th key={i}>{h}</th>)}</tr>
+              <tr>{block.header.map((h, i) => <th key={i}><InlineText text={h} /></th>)}</tr>
             </thead>
           )}
           <tbody>
             {block.rows.map((row, i) => (
-              <tr key={i}>{row.map((cell, j) => <td key={j}>{cell}</td>)}</tr>
+              <tr key={i}>{row.map((cell, j) => <td key={j}><InlineText text={cell} /></td>)}</tr>
             ))}
           </tbody>
           {block.caption && <caption>{block.caption}</caption>}
@@ -67,8 +79,8 @@ function BlockView({ block }: { block: Block }) {
     case 'quote':
       return (
         <blockquote>
-          <p>{block.text}</p>
-          {block.cite && <footer>— {block.cite}</footer>}
+          <p><InlineText text={block.text} /></p>
+          {block.cite && <footer>— <InlineText text={block.cite} /></footer>}
         </blockquote>
       )
     case 'image':

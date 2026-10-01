@@ -90,7 +90,9 @@ def _looks_like_heading(line: str) -> Optional[int]:
     if m and len(line) <= 90:
         first_num = re.match(r"\d+", m.group(1))
         if not (first_num and int(first_num.group()) > 15):
-            depth = len(re.findall(r"(?:\d+[\.\)])*\d+", m.group(1)))
+            # Le groupe peut être "1.", "1.1" ou "1.1.2" : compter les
+            # composantes numériques, pas les groupes regex imbriqués.
+            depth = len(re.findall(r"\d+", m.group(1)))
             return 1 if depth <= 1 else (2 if depth == 2 else 3)
     # Tout en majuscules, court, pas de point final
     if (
@@ -118,6 +120,11 @@ def _looks_like_heading(line: str) -> Optional[int]:
 def _heading_title(line: str, level: int) -> str:
     m = RE_ATX_HEADING.match(line)
     if m:
+        return m.group(2).strip()
+    m = RE_NUMBERED_HEADING.match(line)
+    if m:
+        # La numérotation est recalculée par build_document(). Éviter ainsi
+        # les titres du type « 1.1 1.1 Le titre » dans le PDF et le sommaire.
         return m.group(2).strip()
     return line.strip().rstrip(":").strip()
 
@@ -202,7 +209,17 @@ def build_blocks(lines: list[RawLine]) -> list[dict]:
         mb = RE_BULLET.match(raw.text)
         mn = RE_NUMBERED_ITEM.match(raw.text)
         ml = RE_LETTER_ITEM.match(raw.text) if not mn else None
-        if mb or mn or ml:
+        next_is_item = (
+            i + 1 < len(lines)
+            and (RE_BULLET.match(lines[i + 1].text)
+                 or RE_NUMBERED_ITEM.match(lines[i + 1].text)
+                 or RE_LETTER_ITEM.match(lines[i + 1].text))
+        )
+        # Une ligne « 2. Partie » suivie d'un paragraphe est un titre, pas
+        # une liste à un seul élément. Une séquence contiguë « 1. … / 2. … »
+        # reste bien une liste numérotée.
+        numbered_title = bool(mn and _looks_like_heading(stripped) and not next_is_item)
+        if (mb or mn or ml) and not numbered_title:
             flush_para()
             ordered = bool(mn or ml)
             items: list[str] = []
@@ -343,6 +360,14 @@ def build_document(raw_text: str) -> dict:
     blocks, doc_title = _promote_title_candidate(blocks, raw_text)
 
     blocks = _rebalance_levels(blocks)
+
+    # Le premier titre du corps devient le point d'entrée H1 lorsque la
+    # première ligne a déjà été consommée comme titre de document.
+    if doc_title:
+        first_heading = next((b for b in blocks if b["type"] == "heading"), None)
+        if first_heading and first_heading["level"] > 1:
+            first_heading["level"] = 1
+            blocks = _rebalance_levels(blocks)
 
     # Si aucun H1 mais plusieurs H2 → promeut le premier en H1
     if not any(b["type"] == "heading" and b["level"] == 1 for b in blocks):

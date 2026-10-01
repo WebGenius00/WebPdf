@@ -73,6 +73,22 @@ class BuildDocumentTests(unittest.TestCase):
         self.assertEqual({entry["id"] for entry in doc["toc"]}, block_ids)
         self.assertEqual(doc["metadata"]["wordCount"], 4)
 
+    def test_plain_numbered_headings_keep_hierarchy_and_drop_source_numbers(self) -> None:
+        doc = structurizer.build_document(
+            "Guide\n\nIntroduction\nTexte.\n\n"
+            "1. Principes\nTexte.\n\n"
+            "1.1 Détail\nTexte.\n\n"
+            "2. Suite\nTexte."
+        )
+
+        headings = [b for b in doc["blocks"] if b["type"] == "heading"]
+        self.assertEqual([(b["level"], b["number"], b["text"]) for b in headings], [
+            (1, "1", "Introduction"),
+            (1, "2", "Principes"),
+            (2, "2.1", "Détail"),
+            (1, "3", "Suite"),
+        ])
+
 
 class FurnitureCssTests(unittest.TestCase):
     def test_default_header_and_footer_keep_dynamic_page_labels(self) -> None:

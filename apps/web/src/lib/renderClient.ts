@@ -110,6 +110,22 @@ class PdfWriter {
       this.y += size * lineH * 0.3527
     }
     for (const w of words) {
+      // Les mots très longs (URL, identifiants, chemins) doivent être
+      // découpés : sinon jsPDF les laisse dépasser de la largeur imprimable.
+      if (!line && this.pdf.getTextWidth(w) > maxW) {
+        let chunk = ''
+        for (const char of w) {
+          const candidate = chunk + char
+          if (this.pdf.getTextWidth(candidate) > maxW && chunk) {
+            put(chunk)
+            chunk = char
+          } else {
+            chunk = candidate
+          }
+        }
+        line = chunk
+        continue
+      }
       const test = line ? `${line} ${w}` : w
       if (this.pdf.getTextWidth(test) > maxW && line) {
         put(line)
@@ -217,18 +233,20 @@ class PdfWriter {
   table(header: string[], rows: string[][]): void {
     const cols = Math.max(1, header.length)
     const colW = this.contentW / cols
-    const cell = (txt: string, x: number, bold: boolean): number => {
+    const cell = (txt: string, x: number, bold: boolean, draw = true): number => {
       this.setFont(this.pal.sans, bold ? 'bold' : 'normal', 8.5)
       const lines = this.pdf.splitTextToSize(clean(txt), colW - 3) as string[]
-      lines.forEach((l, i) => this.pdf.text(l, x + 1.5, this.y + 3.5 + i * 3.4))
+      if (draw) lines.forEach((l, i) => this.pdf.text(l, x + 1.5, this.y + 3.5 + i * 3.4))
       return Math.max(7, lines.length * 3.4 + 3)
     }
     this.ensure(10)
-    let hMax = cell(header[0] ?? '', MARGIN, true)
-    for (let c = 1; c < cols; c++) hMax = Math.max(hMax, cell(header[c] ?? '', MARGIN + c * colW, true))
+    let hMax = cell(header[0] ?? '', MARGIN, true, false)
+    for (let c = 1; c < cols; c++) hMax = Math.max(hMax, cell(header[c] ?? '', MARGIN + c * colW, true, false))
     this.pdf.setFillColor(...this.pal.accent)
     this.pdf.rect(MARGIN, this.y, this.contentW, hMax, 'F')
     this.pdf.setTextColor(255, 255, 255)
+    cell(header[0] ?? '', MARGIN, true)
+    for (let c = 1; c < cols; c++) cell(header[c] ?? '', MARGIN + c * colW, true)
     this.y += hMax
     for (const row of rows) {
       this.ensure(hMax + 4)
