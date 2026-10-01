@@ -85,7 +85,8 @@ export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait'
         const bottom = children[index].getBoundingClientRect().bottom - top
         const pageContentLimit = (page + 1) * paperSize.height - PAGE_VERTICAL_PADDING
         const containsHeading = Boolean(children[index].querySelector('h1, h2, h3'))
-        const headingNeedsFollowingContent = containsHeading && bottom > pageContentLimit - 160
+        const nextBottom = children[index + 1] ? children[index + 1].getBoundingClientRect().bottom - top : bottom
+        const headingNeedsFollowingContent = containsHeading && nextBottom > pageContentLimit
         if (groups[page].length > 0 && (bottom > pageContentLimit || headingNeedsFollowingContent)) {
           page += 1
           groups[page] = []
