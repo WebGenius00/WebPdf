@@ -7,8 +7,9 @@
  * entre l'aperçu écran et le PDF final.
  */
 
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import type { Block, Doc } from '../../lib/doc'
+import type { LayoutOptions } from '../../lib/api'
 
 /** Même sous-ensemble Markdown inline que le renderer PDF Python. */
 function InlineText({ text }: { text: string }): ReactNode {
@@ -98,7 +99,12 @@ function BlockView({ block }: { block: Block }) {
   }
 }
 
-export function DocPreview({ doc }: { doc: Doc | null }) {
+export function DocPreview({ doc, layout }: { doc: Doc | null; layout?: LayoutOptions }) {
+  const previewRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!doc) return
+    previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [doc])
   if (!doc) {
     return (
       <section className="preview">
@@ -111,8 +117,8 @@ export function DocPreview({ doc }: { doc: Doc | null }) {
 
   const { metadata, toc, blocks } = doc
   return (
-    <section className="preview">
-      <article className="page">
+    <section ref={previewRef} className="preview" aria-live="polite">
+      <article className={`page density-${layout?.density ?? 'standard'} title-spacing-${layout?.titleSpacing ?? 'standard'} align-${layout?.paragraphAlign ?? 'justify'}`}>
         <header className="cover-mini">
           <h1 className="doc-title">{metadata.title ?? 'Document sans titre'}</h1>
           {metadata.subtitle && <p className="subtitle">{metadata.subtitle}</p>}

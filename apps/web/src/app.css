@@ -242,7 +242,7 @@ body {
 
 /* ---------- Aperçu « papier » (couleurs fixes : rendu fidèle du PDF) ---------- */
 .preview {
-  overflow: auto; max-height: calc(100vh - 150px); padding: 22px; border-radius: var(--radius);
+  overflow: auto; max-height: calc(100vh - 150px); padding: 22px; border-radius: var(--radius); scroll-margin-top: 18px;
   background: color-mix(in srgb, var(--ink) 6%, var(--panel-2)); border: 1px solid var(--line);
 }
 .page {
@@ -265,7 +265,18 @@ body {
 .toc a:hover { color: #4f46e5; }
 .num { color: #4f46e5; font-weight: 600; margin-right: 4px; }
 .page h1, .page h2, .page h3 { font-family: 'Inter', system-ui, sans-serif; letter-spacing: -0.01em; color: #111827; }
-.page h1 { border-bottom: 2px solid #4f46e5; padding-bottom: 4px; }
+.page h1 { border-bottom: 2px solid #4f46e5; padding-bottom: 7px; margin-bottom: 18px; }
+.page h2, .page h3 { margin-bottom: 12px; }
+.page h1 + p, .page h2 + p, .page h3 + p { margin-top: 8px; }
+.page.density-compact { line-height: 1.45; }
+.page.density-compact p { margin-bottom: 10px; }
+.page.density-compact li { margin-bottom: 4px; }
+.page.density-airy { line-height: 1.8; }
+.page.density-airy p { margin-bottom: 22px; }
+.page.density-airy li { margin-bottom: 10px; }
+.page.align-left p { text-align: left; }
+.page.title-spacing-compact h1, .page.title-spacing-compact h2, .page.title-spacing-compact h3 { margin-top: 14px; }
+.page.title-spacing-airy h1, .page.title-spacing-airy h2, .page.title-spacing-airy h3 { margin-top: 30px; }
 .callout { border-left: 4px solid #4f46e5; background: #eef2ff; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 16px 0; }
 .callout.tip, .callout.info-note { border-color: #15803d; background: #f0fdf4; }
 .callout.warning { border-color: #d97706; background: #fffbeb; }
@@ -279,6 +290,10 @@ pre { background: #0f172a; color: #e2e8f0; padding: 12px 14px; border-radius: 8p
 blockquote { border-left: 3px solid #d1d5db; margin: 14px 0; padding: 2px 16px; color: #6b7280; font-style: italic; }
 figure { margin: 16px 0; text-align: center; }
 figcaption { color: #6b7280; font-size: 12px; margin-top: 4px; }
+.layout-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.layout-controls label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; }
+.layout-controls select { padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--ink); font: inherit; font-size: 12px; }
+@media (max-width: 640px) { .layout-controls { grid-template-columns: 1fr; } }
 
 /* ---------- Lecteur PDF ---------- */
 .reader-body { display: flex; gap: 16px; align-items: flex-start; }

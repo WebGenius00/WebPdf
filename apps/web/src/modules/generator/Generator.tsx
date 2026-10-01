@@ -10,7 +10,7 @@
  *   4. thème & format papier sont choisis ici et passés au renderer.
  */
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   DEFAULT_RENDER_OPTIONS,
   generatePdf,
@@ -90,6 +90,7 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const header = options.header ?? DEFAULT_RENDER_OPTIONS.header!
   const footer = options.footer ?? DEFAULT_RENDER_OPTIONS.footer!
+  const layout = options.layout ?? DEFAULT_RENDER_OPTIONS.layout!
 
   const updateFurniture = (kind: 'header' | 'footer', patch: Partial<PageFurniture>) => {
     const current = options[kind] ?? DEFAULT_RENDER_OPTIONS[kind]!
@@ -128,6 +129,15 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
       setBusy(null)
     }
   }, [text, onDoc])
+
+  // L’aperçu se met à jour automatiquement après une courte pause de saisie.
+  useEffect(() => {
+    if (!text.trim()) return
+    const timer = window.setTimeout(() => {
+      if (!busy) void structure()
+    }, 700)
+    return () => window.clearTimeout(timer)
+  }, [text, busy, structure])
 
   /** Télécharge le Blob PDF sous un nom dérivé du titre du document. */
   const download = useCallback(async () => {
@@ -248,6 +258,31 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
           })}
         >
           Réinitialiser les en-têtes et pieds de page
+        </button>
+      </details>
+
+      <details className="print-customizer layout-customizer">
+        <summary>Contrôler la mise en page avant génération</summary>
+        <p className="muted furniture-help">Modifiez ces réglages pour corriger les espacements et l’équilibre du document avant de télécharger le PDF.</p>
+        <div className="layout-controls">
+          <label>Densité
+            <select value={layout.density} onChange={(e) => onOptions({ ...options, layout: { ...layout, density: e.target.value as typeof layout.density } })}>
+              <option value="compact">Compacte</option><option value="standard">Standard</option><option value="airy">Aérée</option>
+            </select>
+          </label>
+          <label>Paragraphes
+            <select value={layout.paragraphAlign} onChange={(e) => onOptions({ ...options, layout: { ...layout, paragraphAlign: e.target.value as typeof layout.paragraphAlign } })}>
+              <option value="justify">Justifiés</option><option value="left">Alignés à gauche</option>
+            </select>
+          </label>
+          <label>Espacement des titres
+            <select value={layout.titleSpacing} onChange={(e) => onOptions({ ...options, layout: { ...layout, titleSpacing: e.target.value as typeof layout.titleSpacing } })}>
+              <option value="compact">Serré</option><option value="standard">Standard</option><option value="airy">Aéré</option>
+            </select>
+          </label>
+        </div>
+        <button type="button" className="btn reset-furniture" onClick={() => onOptions({ ...options, layout: { ...DEFAULT_RENDER_OPTIONS.layout! } })}>
+          Réinitialiser la mise en page
         </button>
       </details>
 

@@ -20,11 +20,18 @@ export interface PageFurniture {
 }
 
 /** Options de rendu transmises à /api/generate. */
+export interface LayoutOptions {
+  density: 'compact' | 'standard' | 'airy'
+  paragraphAlign: 'justify' | 'left'
+  titleSpacing: 'compact' | 'standard' | 'airy'
+}
+
 export interface RenderOptions {
   theme?: 'editorial' | 'corporate' | 'academic'
   paper?: 'a4' | 'letter'
   header?: PageFurniture
   footer?: PageFurniture
+  layout?: LayoutOptions
 }
 
 /** Variables utilisables dans les champs : {title}, {section}, {page}, {pages}. */
@@ -33,6 +40,7 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   paper: 'a4',
   header: { enabled: true, left: 'PDF STUDIO', center: '', right: '{section}', onCover: false },
   footer: { enabled: true, left: '{title}', center: '', right: 'Page {page} sur {pages}', onCover: false },
+  layout: { density: 'standard', paragraphAlign: 'justify', titleSpacing: 'standard' },
 }
 
 async function jsonOrThrow(res: Response): Promise<unknown> {

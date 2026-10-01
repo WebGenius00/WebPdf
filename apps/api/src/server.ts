@@ -96,7 +96,16 @@ interface GenerateBody {
   paper?: string
   header?: unknown
   footer?: unknown
+  layout?: unknown
 }
+
+interface LayoutOptions {
+  density: 'compact' | 'standard' | 'airy'
+  paragraphAlign: 'justify' | 'left'
+  titleSpacing: 'compact' | 'standard' | 'airy'
+}
+
+const DEFAULT_LAYOUT: LayoutOptions = { density: 'standard', paragraphAlign: 'justify', titleSpacing: 'standard' }
 
 interface PageFurniture {
   enabled: boolean
@@ -127,6 +136,19 @@ function normalizeFurniture(value: unknown, defaults: PageFurniture): PageFurnit
     center: text(input.center, defaults.center),
     right: text(input.right, defaults.right),
     onCover: typeof input.onCover === 'boolean' ? input.onCover : defaults.onCover,
+  }
+}
+
+function normalizeLayout(value: unknown): LayoutOptions {
+  const input = typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Partial<LayoutOptions>
+    : {}
+  const choice = <T extends string>(candidate: unknown, allowed: readonly T[], fallback: T): T =>
+    typeof candidate === 'string' && allowed.includes(candidate as T) ? candidate as T : fallback
+  return {
+    density: choice(input.density, ['compact', 'standard', 'airy'], DEFAULT_LAYOUT.density),
+    paragraphAlign: choice(input.paragraphAlign, ['justify', 'left'], DEFAULT_LAYOUT.paragraphAlign),
+    titleSpacing: choice(input.titleSpacing, ['compact', 'standard', 'airy'], DEFAULT_LAYOUT.titleSpacing),
   }
 }
 
@@ -181,6 +203,7 @@ app.post('/api/generate', async (request, reply) => {
     header: normalizeFurniture(body?.header, DEFAULT_HEADER),
     footer: normalizeFurniture(body?.footer, DEFAULT_FOOTER),
   }
+  const layout = normalizeLayout(body?.layout)
 
   // 1) Obtention du Doc JSON : soit celui validé par le client, soit re-structuration.
   let docJson: string
@@ -199,7 +222,7 @@ app.post('/api/generate', async (request, reply) => {
   try {
     const pdfPath = join(dir, 'out.pdf')
     const render = await runPython(
-      ['renderer.py', '--stdin', pdfPath, '--theme', theme!, '--paper', paper!, '--furniture', JSON.stringify(furniture)],
+      ['renderer.py', '--stdin', pdfPath, '--theme', theme!, '--paper', paper!, '--furniture', JSON.stringify(furniture), '--layout', JSON.stringify(layout)],
       docJson,
     )
     if (!render.ok) {

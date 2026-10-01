@@ -323,6 +323,22 @@ DEFAULT_FURNITURE: dict[str, dict[str, Any]] = {
     "header": {"enabled": True, "left": "PDF STUDIO", "center": "", "right": "{section}", "onCover": False},
     "footer": {"enabled": True, "left": "{title}", "center": "", "right": "Page {page} sur {pages}", "onCover": False},
 }
+DEFAULT_LAYOUT = {"density": "standard", "paragraphAlign": "justify", "titleSpacing": "standard"}
+
+def _layout_css(raw: dict[str, Any] | None) -> str:
+    value = raw if isinstance(raw, dict) else {}
+    density = value.get("density") if value.get("density") in {"compact", "standard", "airy"} else "standard"
+    align = value.get("paragraphAlign") if value.get("paragraphAlign") in {"justify", "left"} else "justify"
+    spacing = value.get("titleSpacing") if value.get("titleSpacing") in {"compact", "standard", "airy"} else "standard"
+    density_values = {"compact": ("1.45", "2.5mm", "1mm"), "standard": ("1.62", "3.8mm", "1.8mm"), "airy": ("1.8", "5.5mm", "3mm")}
+    line_height, paragraph_gap, block_gap = density_values[density]
+    title_values = {"compact": ("6mm", "2mm"), "standard": ("10mm", "4mm"), "airy": ("14mm", "6mm")}
+    title_margin, title_after = title_values[spacing]
+    return (f"body {{ line-height: {line_height}; }} "
+            f"p {{ margin-bottom: {paragraph_gap}; text-align: {align}; }} "
+            f"h1 {{ margin-top: {title_margin}; margin-bottom: {title_after}; padding-bottom: 3mm; }} "
+            f"h2, h3 {{ margin-top: {title_margin}; margin-bottom: {block_gap}; }} "
+            "h1 + p, h2 + p, h3 + p { margin-top: 2.5mm; }")
 FURNITURE_TOKENS = {
     "title": "string(doctitle)",
     "section": "string(sectiontitle)",
@@ -405,11 +421,13 @@ def build_css(
     paper: str = "a4",
     extra: str | None = None,
     furniture: dict[str, Any] | None = None,
+    layout: dict[str, Any] | None = None,
 ) -> str:
     """Compose le CSS : format, thème, CSS optionnel et zones courantes configurées."""
     parts = [DEFAULT_CSS, PAPERS.get(paper.lower(), ""), THEMES.get(theme.lower(), "")]
     if extra:
         parts.append(extra)
+    parts.append(_layout_css(layout))
     parts.append(_furniture_css(furniture))
     return "\n".join(p for p in parts if p.strip())
 
@@ -424,7 +442,7 @@ def render_pdf(doc: dict[str, Any], out_path: str, css: str | None = None) -> st
 
 def parse_args(argv: list[str]) -> dict[str, str]:
     """Mini-parseur CLI sans dépendance : positions + options nommées."""
-    opts = {"theme": "editorial", "paper": "a4", "css": "", "furniture": "", "doc": "", "out": ""}
+    opts = {"theme": "editorial", "paper": "a4", "css": "", "furniture": "", "layout": "", "doc": "", "out": ""}
     positional: list[str] = []
     i = 0
     while i < len(argv):
@@ -437,6 +455,8 @@ def parse_args(argv: list[str]) -> dict[str, str]:
             i += 1; opts["css"] = argv[i]
         elif a == "--furniture":
             i += 1; opts["furniture"] = argv[i]
+        elif a == "--layout":
+            i += 1; opts["layout"] = argv[i]
         else:
             positional.append(a)
         i += 1
@@ -459,7 +479,8 @@ def main() -> None:
         with open(opts["css"], encoding="utf-8") as f:
             extra_css = f.read()
     furniture = json.loads(opts["furniture"]) if opts["furniture"] else None
-    css = build_css(opts["theme"], opts["paper"], extra_css or None, furniture)
+    layout = json.loads(opts["layout"]) if opts["layout"] else None
+    css = build_css(opts["theme"], opts["paper"], extra_css or None, furniture, layout)
     out = render_pdf(doc, opts["out"], css)
     print(f"PDF généré : {out}")
 

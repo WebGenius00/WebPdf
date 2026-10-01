@@ -178,7 +178,7 @@ export default function App() {
         {tab === 'generate' ? (
           <div className="split">
             <Generator doc={doc} onDoc={setDoc} options={renderOptions} onOptions={setRenderOptions} />
-            <DocPreview doc={doc} />
+            <DocPreview doc={doc} layout={renderOptions.layout} />
           </div>
         ) : (
           <Suspense fallback={<p className="muted" style={{ padding: '2rem' }}>Chargement du lecteur…</p>}>

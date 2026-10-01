@@ -59,6 +59,9 @@ class PdfWriter {
   private readonly pal: Palette
   private readonly header: PageFurniture
   private readonly footerOptions: PageFurniture
+  private readonly lineHeight: number
+  private readonly paragraphGap: number
+  private readonly titleGap: number
   private readonly sectionsByPage: string[] = ['']
   private currentSection = ''
   private docTitle = 'Document'
@@ -72,6 +75,11 @@ class PdfWriter {
     this.pal = THEMES[theme] ?? THEMES.editorial
     this.header = { ...DEFAULT_RENDER_OPTIONS.header!, ...options.header }
     this.footerOptions = { ...DEFAULT_RENDER_OPTIONS.footer!, ...options.footer }
+    const density = options.layout?.density ?? 'standard'
+    this.lineHeight = density === 'compact' ? 1.45 : density === 'airy' ? 1.8 : LINE_H
+    this.paragraphGap = density === 'compact' ? 2 : density === 'airy' ? 5 : 3
+    const titleSpacing = options.layout?.titleSpacing ?? 'standard'
+    this.titleGap = titleSpacing === 'compact' ? 3 : titleSpacing === 'airy' ? 7 : 5
     this.y = MARGIN
   }
 
@@ -94,7 +102,7 @@ class PdfWriter {
   }
 
   /** Paragraphe fluide avec césure mot à mot. mode: 'draw' peint, 'measure' compte uniquement. */
-  private flow(text: string, family: string, style: string, size: number, color: [number, number, number], indent = 0, lineH = LINE_H, mode: 'draw' | 'measure' = 'draw'): void {
+  private flow(text: string, family: string, style: string, size: number, color: [number, number, number], indent = 0, lineH = this.lineHeight, mode: 'draw' | 'measure' = 'draw'): void {
     this.setFont(family, style, size)
     if (mode === 'draw') this.pdf.setTextColor(...color)
     const words = clean(text).split(' ').filter(Boolean)
@@ -179,7 +187,7 @@ class PdfWriter {
     } else {
       this.ensure(size * 2.2)
     }
-    this.gap(level === 1 ? 6 : 4)
+    this.gap(level === 1 ? this.titleGap : Math.max(2, this.titleGap - 1))
     const label = number ? `${number}  ${text}` : text
     this.flow(label, this.pal.serif, level === 3 ? 'normal' : 'bold', size, this.pal.accent)
     if (level <= 2) this.rule(this.pal.accent, level === 1 ? 0.8 : 0.3)
@@ -188,7 +196,7 @@ class PdfWriter {
 
   paragraph(text: string): void {
     this.flow(text, this.pal.serif, 'normal', 10.5, this.pal.ink)
-    this.gap(3)
+    this.gap(this.paragraphGap)
   }
 
   list(items: string[], ordered: boolean): void {
