@@ -25,75 +25,138 @@ from typing import Any
 DEFAULT_CSS = """
 @page {
   size: A4;
-  margin: 22mm 18mm 20mm 18mm;
-  @bottom-center {
-    content: "Page " counter(page) " sur " counter(pages);
-    font-size: 8.5pt; color: #6b7280; font-family: 'DejaVu Sans', sans-serif;
+  margin: 26mm 21mm 24mm;
+  @top-left {
+    content: "PDF STUDIO";
+    font: 700 7.5pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
+    letter-spacing: 1pt; color: #4f46e5;
+    vertical-align: bottom; padding-bottom: 2.2mm;
+    border-bottom: 0.6pt solid #dbe2ea;
   }
   @top-right {
+    content: string(sectiontitle);
+    font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
+    color: #64748b; text-align: right;
+    vertical-align: bottom; padding-bottom: 2.2mm;
+    border-bottom: 0.6pt solid #dbe2ea;
+  }
+  @bottom-left {
     content: string(doctitle);
-    font-size: 8pt; color: #9ca3af; font-family: 'DejaVu Sans', sans-serif;
+    font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
+    color: #7b8495;
+    vertical-align: top; padding-top: 2.2mm;
+    border-top: 0.6pt solid #dbe2ea;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " sur " counter(pages);
+    font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
+    color: #475569; text-align: right;
+    vertical-align: top; padding-top: 2.2mm;
+    border-top: 0.6pt solid #dbe2ea;
   }
 }
-@page :first { @top-right { content: none; } @bottom-center { content: none; } }
+@page :first {
+  margin: 22mm 21mm;
+  @top-left { content: none; border: 0; }
+  @top-right { content: none; border: 0; }
+  @bottom-left { content: none; border: 0; }
+  @bottom-right { content: none; border: 0; }
+}
 
-html { font-family: 'DejaVu Serif', Georgia, serif; font-size: 10.5pt; color: #1f2937; }
-body { line-height: 1.55; }
+html {
+  font-family: 'Liberation Serif', 'Nimbus Roman', Georgia, serif;
+  font-size: 10.7pt; color: #253044;
+}
+body { line-height: 1.62; }
 
 /* ---------- Page de titre ---------- */
-.cover { page: cover; text-align: center; padding-top: 45%; break-after: page; }
-.cover h1.doc-title { font-size: 26pt; color: #111827; border: none; margin: 0 0 6mm 0; string-set: doctitle content(); }
-.cover .author { font-size: 12pt; color: #6b7280; font-style: italic; }
-.cover .date { font-size: 10pt; color: #9ca3af; margin-top: 4mm; }
+.cover { page: cover; text-align: center; padding: 42% 10mm 0; break-after: page; }
+.cover::before {
+  content: "PDF STUDIO"; display: block; margin-bottom: 11mm;
+  font: 700 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
+  letter-spacing: 1.6pt; color: #4f46e5;
+}
+.cover h1.doc-title {
+  font: 700 29pt/1.16 'Liberation Serif', 'Nimbus Roman', Georgia, serif;
+  color: #172033; border: none; margin: 0 0 6mm;
+  break-before: auto; string-set: doctitle content();
+}
+.cover h1.doc-title::after {
+  content: ""; display: block; width: 18mm;
+  border-top: 2.5pt solid #4f46e5; margin: 7mm auto 0;
+}
+.cover .author { font-size: 12pt; color: #64748b; font-style: italic; }
+.cover .date { font-size: 9.5pt; color: #8b95a7; margin-top: 4mm; }
 
 /* ---------- Sommaire ---------- */
 nav.toc { break-after: page; }
-nav.toc h2 { font-size: 15pt; color: #111827; }
-nav.toc ul { list-style: none; padding: 0; }
-nav.toc li { margin: 1.6mm 0; font-size: 10pt; }
-nav.toc li.l2 { padding-left: 6mm; color: #374151; }
-nav.toc li.l3 { padding-left: 12mm; color: #6b7280; font-size: 9.5pt; }
+nav.toc h2 {
+  font: 700 21pt/1.2 'Liberation Serif', 'Nimbus Roman', Georgia, serif;
+  color: #172033; margin: 0 0 8mm; padding-bottom: 3mm;
+  border-bottom: 1pt solid #dbe2ea;
+}
+nav.toc ul { list-style: none; padding: 0; margin: 0; }
+nav.toc li { margin: 2.2mm 0; font-size: 10pt; line-height: 1.45; }
+nav.toc li.l2 { padding-left: 7mm; color: #475569; }
+nav.toc li.l3 { padding-left: 14mm; color: #64748b; font-size: 9.5pt; }
 nav.toc a { text-decoration: none; color: inherit; }
 nav.toc a::after {
   content: leader('.') target-counter(attr(href), page);
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
 /* ---------- Titres ---------- */
-h1, h2, h3 { font-family: 'DejaVu Sans', Arial, sans-serif; color: #111827; break-after: avoid; }
-h1 { font-size: 17pt; border-bottom: 1.4pt solid #2563eb; padding-bottom: 2mm; margin: 9mm 0 4mm; break-before: page; }
+h1, h2, h3 {
+  font-family: 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
+  color: #172033; break-after: avoid;
+}
+h1 {
+  font-size: 18pt; font-weight: 700; line-height: 1.22;
+  border-bottom: 0.9pt solid #cbd5e1; padding-bottom: 2.8mm;
+  margin: 10mm 0 5mm; break-before: page;
+  string-set: sectiontitle content();
+}
 h1.first { break-before: auto; }
-h2 { font-size: 13pt; margin: 7mm 0 3mm; color: #1e40af; }
-h3 { font-size: 11pt; margin: 5mm 0 2.5mm; color: #374151; }
-.heading-number { color: #2563eb; margin-right: 2.5mm; }
+h2 { font-size: 14pt; line-height: 1.28; margin: 7mm 0 3mm; color: #334155; }
+h3 { font-size: 11pt; line-height: 1.3; margin: 5mm 0 2.5mm; color: #475569; }
+.heading-number { color: #4f46e5; margin-right: 2.5mm; font-weight: 600; }
 
 /* ---------- Paragraphes & listes ---------- */
-p { margin: 0 0 3mm; text-align: justify; orphans: 2; widows: 2; hyphens: auto; }
-ul, ol { margin: 0 0 3.5mm; padding-left: 7mm; }
-li { margin-bottom: 1.2mm; }
+p { margin: 0 0 3.8mm; text-align: justify; orphans: 2; widows: 2; hyphens: auto; }
+ul, ol { margin: 0 0 4mm; padding-left: 7mm; }
+li { margin-bottom: 1.4mm; }
+li::marker { color: #4f46e5; }
 
 /* ---------- Définitions ---------- */
-dl dt { font-weight: bold; color: #111827; margin-top: 2.5mm; }
-dl dd { margin: 0 0 2mm 6mm; color: #374151; }
+dl dt { font-weight: bold; color: #172033; margin-top: 2.5mm; }
+dl dd { margin: 0 0 2mm 6mm; color: #475569; }
 
 /* ---------- Tableaux ---------- */
 table { border-collapse: collapse; width: 100%; margin: 4mm 0; font-size: 9.5pt; break-inside: auto; }
-th { background: #1e3a8a; color: white; font-family: 'DejaVu Sans', sans-serif; }
-th, td { border: 0.5pt solid #cbd5e1; padding: 1.8mm 2.5mm; text-align: left; }
-tbody tr:nth-child(even) { background: #f1f5f9; }
+thead { display: table-header-group; }
+th {
+  background: #263774; color: white;
+  font: 700 8.5pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
+  letter-spacing: 0.2pt;
+}
+th, td { border: 0.5pt solid #d6deea; padding: 2mm 2.5mm; text-align: left; }
+tbody tr:nth-child(even) { background: #f4f6fa; }
 tr { break-inside: avoid; }
 
 /* ---------- Encadrés ---------- */
-.callout { border-left: 3pt solid #2563eb; background: #eff6ff; padding: 3mm 4mm; margin: 4mm 0; break-inside: avoid; font-size: 10pt; }
-.callout.note    { border-color: #0891b2; background: #ecfeff; }
+.callout { border-left: 3pt solid #4f46e5; background: #f3f4ff; padding: 3.5mm 4mm; margin: 4mm 0; break-inside: avoid; font-size: 10pt; }
+.callout.note    { border-color: #0e7490; background: #ecfeff; }
 .callout.warning { border-color: #d97706; background: #fffbeb; }
-.callout.info    { border-color: #2563eb; background: #eff6ff; }
-.callout .label { font-family: 'DejaVu Sans', sans-serif; font-weight: bold; font-size: 9pt;
-                  text-transform: uppercase; letter-spacing: 0.4pt; display: block; margin-bottom: 1mm; color: #374151; }
+.callout.info    { border-color: #4f46e5; background: #f3f4ff; }
+.callout .label {
+  font: 700 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
+  text-transform: uppercase; letter-spacing: 0.5pt;
+  display: block; margin-bottom: 1mm; color: #475569;
+}
 
 /* ---------- Code ---------- */
-pre.code { font-family: 'DejaVu Sans Mono', monospace; font-size: 8.8pt; background: #f8fafc;
-           border: 0.5pt solid #e2e8f0; border-radius: 2mm; padding: 3mm; margin: 3.5mm 0;
+pre.code { font-family: 'Liberation Mono', 'Nimbus Mono PS', monospace; font-size: 8.8pt; background: #f6f7fb;
+           border: 0.5pt solid #dbe2ea; border-radius: 2mm; padding: 3mm; margin: 3.5mm 0;
            white-space: pre-wrap; word-break: break-word; break-inside: avoid; }
 """
 
@@ -196,6 +259,7 @@ h1 { border-bottom-color: #0f766e !important; }
 h2 { color: #115e59 !important; }
 th { background: #134e4a !important; }
 .cover h1.doc-title { color: #0f172a; }
+.cover::before { color: #0f766e; }
 """,
     "academic": """
 h1 { border-bottom: 1.4pt solid #111827 !important; font-variant: small-caps; }
@@ -204,6 +268,7 @@ h2, h3 { color: #111827 !important; }
 th { background: #374151 !important; }
 p { text-align: justify; }
 .cover h1.doc-title { font-variant: small-caps; letter-spacing: 0.5pt; }
+.cover::before { color: #374151; }
 """,
 }
 

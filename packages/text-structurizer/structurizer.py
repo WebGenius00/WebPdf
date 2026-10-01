@@ -76,6 +76,7 @@ RE_TABLE_ROW = re.compile(r"^\s*\|.*\|\s*$")
 RE_FENCE = re.compile(r"^\s*```")
 RE_CAPTION = re.compile(r"^(Figure|Tableau|Schéma|Encadré|Note|Remarque|Attention|Avertissement)\s*[:\.]?\s", re.IGNORECASE)
 RE_SENTENCE_END = re.compile(r"[.!?…\u00a0!\u00a0?\u00a0!]['\"»\)]?\s*$")
+RE_AUTHOR_LINE = re.compile(r"^(par|de|auteur\s*[:\-]|by)\s+(.+)$", re.IGNORECASE)
 
 
 def _looks_like_heading(line: str) -> Optional[int]:
@@ -106,9 +107,10 @@ def _looks_like_heading(line: str) -> Optional[int]:
         len(line) <= 50
         and not re.search(r"[.;:!,]$", line)
         and RE_SENTENCE_END.search(line) is None
+        and not RE_AUTHOR_LINE.match(line)
     ):
         words = line.split()
-        if 1 < len(words) <= 8 and line[0].isupper():
+        if 1 <= len(words) <= 8 and line[0].isupper():
             return 2
     return None
 
@@ -295,9 +297,6 @@ def _rebalance_levels(blocks: list[dict]) -> list[dict]:
     return blocks
 
 
-RE_AUTHOR_LINE = re.compile(r"^(par|de|auteur\s*[:\-]|by)\s+(.+)$", re.IGNORECASE)
-
-
 def _promote_title_candidate(blocks: list[dict], raw_text: str) -> tuple[list[dict], Optional[str]]:
     """Si le document commence par une ligne 'haute' (titre candidat) suivie
     éventuellement d'une ligne d'auteur, la promeut en titre du document.
@@ -351,6 +350,8 @@ def build_document(raw_text: str) -> dict:
             if b["type"] == "heading":
                 b["level"] = 1
                 break
+        # La promotion du premier H2 en H1 peut créer un saut H1 → H3.
+        blocks = _rebalance_levels(blocks)
 
     toc: list[dict] = []
     counter = [0] * 4  # numbering 1..3

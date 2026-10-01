@@ -1,8 +1,8 @@
 # 📊 PROGRESS.md — PDF Studio
 
 ## 🎯 État actuel
-**Phase en cours :** Phase 2 finalisée → Phases 3 & 4 (MVP intégrés de bout en bout)
-**Date dernière MAJ :** 23/09/2026
+**Phase en cours :** Phase 7 — tests & fiabilisation
+**Date dernière MAJ :** 01/10/2026
 **Statut global :** 🟢 En bonne voie
 
 ## 📌 Phases du projet
@@ -11,9 +11,20 @@
 - [~] Phase 3 — Module Lecture PDF (MVP) — composant `PdfReader` écrit, **build ✅**, à tester manuellement dans le navigateur
 - [~] Phase 4 — Module Génération PDF (MVP) — pipeline E2E **validé par l'API** (texte → Doc JSON → PDF %PDF-1.7 ✅), UI intégrée
 - [x] Phase 5 — Structuration intelligente (voiture "règles") — moteur `structurizer.py` + contrat TS `doc/0.1` alignés ; raffinement LLM = suite de la phase
-- [ ] Phase 6 — UX/UI & design system (Tailwind + shadcn/ui)
-- [ ] Phase 7 — Tests & optimisations
+- [x] Phase 6 — UX/UI & design system CSS natif (thèmes clair/sombre/auto, interface affinée, code-splitting)
+- [~] Phase 7 — Tests & optimisations (tests du structurizer ajoutés ; couverture API et lecteur à compléter)
 - [ ] Phase 8 — Déploiement
+
+## 🔥 Session 01/10/2026 — structurizer, tests & mise en page PDF
+- [x] Ajout de 6 tests Python sans dépendance externe, exécutés par `npm test`.
+- [x] Correction de la détection des intertitres isolés d'un mot (ex. « Introduction »).
+- [x] Les lignes d'auteur (« Par … », « By … ») ne sont plus classées comme titres/sommaire.
+- [x] Rééquilibrage de la hiérarchie après promotion du premier H2 en H1, pour éviter les sauts H1 → H3.
+- [x] Validation du pipeline d'exemple jusqu'au PDF (4 pages, A4, extractible).
+- [x] Refonte du style de rendu : paire Liberation Serif/Sans, couverture éditoriale, marges d'impression, titres et tableaux affinés.
+- [x] En-têtes courants (nom de section), marque discrète et pieds de page (titre du document + page X/Y).
+- [x] Contrôle visuel et génération réussie sur les 3 thèmes (Editorial/Corporate/Academic) et les 2 formats (A4/Letter), 4 pages chacun.
+- [ ] Suite : ajouter des tests API et des tests navigateur (lecteur PDF, documents volumineux).
 
 ## 🚧 Déploiement Cloudflare Pages
 - Build ✅ (npm run build racine fonctionne, dist généré)
@@ -43,7 +54,7 @@
 
 **Accès local :** http://localhost:5173 (ou http://21.0.1.3:5173 depuis un autre appareil du réseau). Relance si besoin : `npm run dev:api` + `npm run dev:web`.
 
-**Prochaine session — Objectif :** Phase 6 — Tailwind + shadcn/ui, code-splitting du module Reader (chunk > 500 ko), puis Phase 7 (pytest structurizer + tests API).
+**Prochaine session — Objectif :** compléter la phase 7 avec des tests API et des tests navigateur pour le lecteur PDF (dont les gros documents).
 
 ## 📝 Décisions prises
 | Date | Décision | Raison |

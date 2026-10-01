@@ -12,7 +12,7 @@
     "dev:api": "npm run dev --workspace apps/api",
     "build": "npm run build --workspace @pdf-studio/web",
     "deploy": "wrangler deploy --config apps/web/wrangler.jsonc",
-    "test": "npm run test --workspaces --if-present",
+    "test": "python3 -m unittest discover -s packages/text-structurizer/tests -p 'test_*.py' && npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {

@@ -34,7 +34,7 @@ npm run dev:web
 
 Ouvrir **http://localhost:5173** — bouton « ✨ Exemple » dans l'onglet Générer pour une démo immédiate.
 
-Autres scripts : `npm run build` (tous les workspaces), `npm run typecheck`, `npm test`.
+Autres scripts : `npm run build` (application web), `npm run typecheck`, `npm test` (tests Python du structurizer + tests des workspaces disponibles).
 
 ## API
 
@@ -47,6 +47,6 @@ Autres scripts : `npm run build` (tous les workspaces), `npm run typecheck`, `np
 
 - Aucun fichier persistant côté serveur : tout transite par stdin/stdout + tmpdir nettoyé.
 - Les imports de fichiers (.txt/.md, PDF) sont lus côté client : aucun document ne quitte la machine sauf génération PDF.
-- Le CSS applicatif est volontairement minimal (tokens + dark mode système) ; la migration Tailwind/shadcn est planifiée (Phase 6).
+- L'interface utilise un design system CSS natif (tokens, thèmes auto/clair/sombre, composants) ; le PDF reste sur fond blanc avec une paire Liberation Serif/Sans, des marges d'impression dédiées, des en-têtes de section et une pagination courante.
 
   
