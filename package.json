@@ -11,8 +11,11 @@
     "dev:web": "npm run dev --workspace apps/web",
     "dev:api": "npm run dev --workspace apps/api",
     "build": "npm run build --workspace @pdf-studio/web",
-    "deploy": "npm run build --workspace @pdf-studio/web && wrangler pages deploy apps/web/dist --project-name pdf-studio-web --commit-dirty=true",
+    "deploy": "wrangler deploy --config apps/web/wrangler.jsonc",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "wrangler": "^4.145.0"
   }
 }
