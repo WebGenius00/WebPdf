@@ -10,15 +10,15 @@
  *   4. thème & format papier sont choisis ici et passés au renderer.
  */
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, type RefObject } from 'react'
 import {
   DEFAULT_RENDER_OPTIONS,
-  generatePdf,
   structureText,
   type PageFurniture,
   type RenderOptions,
 } from '../../lib/api'
 import type { Doc } from '../../lib/doc'
+import { exportPreviewPdf } from '../../lib/previewPdf'
 import { SAMPLE_TEXT } from './sample'
 
 interface FurnitureEditorProps {
@@ -80,9 +80,10 @@ interface GeneratorProps {
   onDoc: (doc: Doc | null) => void
   options: RenderOptions
   onOptions: (o: RenderOptions) => void
+  previewRef: RefObject<HTMLElement | null>
 }
 
-export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
+export function Generator({ doc, onDoc, options, onOptions, previewRef }: GeneratorProps) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'structure' | 'pdf' | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -147,27 +148,29 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
         }
         onDoc(current)
       }
-      // jsPDF n'est chargé qu'au moment de générer.
-      const { backendCanGenerate, renderDocClient } = await import('../../lib/renderClient')
-      if (fallbackMode || !(await backendCanGenerate())) {
-        setFallbackMode(true)
-        renderDocClient(current, options) // moteur jsPDF local
-        return
+      // L'aperçu est la source de vérité : on exporte son DOM tel quel,
+      // sans repasser par WeasyPrint ou un second moteur de pagination.
+      // Quand la structuration vient juste de se terminer, attendre le rendu
+      // React pour que la référence pointe bien vers le nouveau document.
+      if (!previewRef.current) {
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+        })
       }
-      const blob = await generatePdf(text, options, current)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
+      const preview = previewRef.current
+      if (!preview) throw new Error("L'aperçu n'est pas prêt à être exporté")
       const title = current.metadata.title ?? 'document'
-      a.href = url
-      a.download = `${title.toLowerCase().replace(/[^\wà-ÿ-]+/g, '-').slice(0, 60)}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      await exportPreviewPdf(
+        preview,
+        options,
+        `${title.toLowerCase().replace(/[^\wà-ÿ-]+/g, '-').slice(0, 60)}.pdf`,
+      )
     } catch (err) {
       setError(String(err instanceof Error ? err.message : err))
     } finally {
       setBusy(null)
     }
-  }, [text, doc, options, onDoc, fallbackMode])
+  }, [text, doc, options, onDoc, previewRef])
 
   return (
     <section className="generator">
