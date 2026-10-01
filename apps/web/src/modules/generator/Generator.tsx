@@ -99,6 +99,10 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
   const fileRef = useRef<HTMLInputElement>(null)
   const sourceRef = useRef<HTMLTextAreaElement>(null)
   const restoredRef = useRef(false)
+  const furnitureRef = useRef<HTMLDetailsElement>(null)
+  const layoutRef = useRef<HTMLDetailsElement>(null)
+  const searchRef = useRef<HTMLDetailsElement>(null)
+  const formatRef = useRef<HTMLDivElement>(null)
   const header = options.header ?? DEFAULT_RENDER_OPTIONS.header!
   const footer = options.footer ?? DEFAULT_RENDER_OPTIONS.footer!
   const layout = options.layout ?? DEFAULT_RENDER_OPTIONS.layout!
@@ -190,6 +194,12 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
     const before = text.slice(0, input.selectionStart)
     const paragraphs = before.split(/\n\s*\n/)
     onCursorContext((paragraphs[paragraphs.length - 1] ?? '').trim().slice(0, 120))
+  }
+
+  const openShortcut = (target: HTMLElement | null) => {
+    if (!target) return
+    if (target instanceof HTMLDetailsElement) target.open = true
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }
 
   const formatSelection = (marker: '**' | '*' | '++') => {
@@ -299,7 +309,15 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         )}
       </div>
 
-      <details className="print-customizer">
+      <nav className="quick-shortcuts" aria-label="Accès rapides aux options">
+        <span className="quick-shortcuts-label">Accès rapides</span>
+        <button type="button" className="quick-shortcut" onClick={() => openShortcut(formatRef.current)}>Aa <span>Formatage</span></button>
+        <button type="button" className="quick-shortcut" onClick={() => openShortcut(searchRef.current)}>⌕ <span>Rechercher</span></button>
+        <button type="button" className="quick-shortcut" onClick={() => openShortcut(layoutRef.current)}>▦ <span>Mise en page</span></button>
+        <button type="button" className="quick-shortcut" onClick={() => openShortcut(furnitureRef.current)}>☷ <span>En-tête / pied</span></button>
+      </nav>
+
+      <details ref={furnitureRef} className="print-customizer">
         <summary>Zones de page — en-tête et pied de page</summary>
         <p className="muted furniture-help">
           Variables : <code>{'{title}'}</code> titre du document · <code>{'{section}'}</code> section ·{' '}
@@ -330,7 +348,7 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         </button>
       </details>
 
-      <details className="print-customizer layout-customizer">
+      <details ref={layoutRef} className="print-customizer layout-customizer">
         <summary>Rythme du document — espacement et texte</summary>
         <p className="muted furniture-help">Modifiez ces réglages pour corriger les espacements et l’équilibre du document avant de télécharger le PDF.</p>
         <div className="layout-controls">
@@ -358,14 +376,14 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
       {error && <p className="error">{error}</p>}
 
       <label className="source-label" htmlFor="document-source">Contenu du document</label>
-      <div className="editor-tools" role="toolbar" aria-label="Outils de mise en forme du texte">
+      <div ref={formatRef} className="editor-tools" role="toolbar" aria-label="Outils de mise en forme du texte">
         <span className="editor-tools-label">Mise en forme</span>
         <button type="button" className="format-tool" onClick={() => formatSelection('**')} title="Gras">G</button>
         <button type="button" className="format-tool italic" onClick={() => formatSelection('*')} title="Italique">I</button>
         <button type="button" className="format-tool underline" onClick={() => formatSelection('++')} title="Souligner la sélection">S</button>
         <span className="muted format-help">Sélectionnez un passage puis choisissez un outil</span>
       </div>
-      <details className="search-replace">
+      <details ref={searchRef} className="search-replace">
         <summary>Rechercher et remplacer</summary>
         <div className="search-replace-fields">
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Texte à rechercher" aria-label="Texte à rechercher" />

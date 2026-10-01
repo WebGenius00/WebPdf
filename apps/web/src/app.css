@@ -543,3 +543,10 @@ tbody tr:nth-child(even) { background: transparent; }
 .search-count { display: block; margin-top: 6px; font-size: 11px; }
 .preview-block.preview-focus { outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent); outline-offset: 7px; border-radius: 4px; animation: preview-focus-pulse 1.2s ease-out; }
 @keyframes preview-focus-pulse { from { background: color-mix(in srgb, var(--accent) 18%, transparent); } to { background: transparent; } }
+
+.quick-shortcuts { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin: 12px 0 6px; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--line)); border-radius: 9px; background: color-mix(in srgb, var(--panel-2) 78%, transparent); }
+.quick-shortcuts-label { color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-right: 3px; }
+.quick-shortcut { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--ink); cursor: pointer; font: inherit; font-size: 12px; }
+.quick-shortcut:hover, .quick-shortcut:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+.quick-shortcut span { color: var(--muted); }
+.quick-shortcut:hover span, .quick-shortcut:focus-visible span { color: inherit; }
