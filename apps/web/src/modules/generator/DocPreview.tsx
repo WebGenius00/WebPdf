@@ -7,7 +7,7 @@
  * entre l'aperçu écran et le PDF final.
  */
 
-import { type ReactNode } from 'react'
+import { type ReactNode, type Ref } from 'react'
 import type { Block, Doc } from '../../lib/doc'
 import type { LayoutOptions } from '../../lib/api'
 
@@ -99,7 +99,7 @@ function BlockView({ block }: { block: Block }) {
   }
 }
 
-export function DocPreview({ doc, layout }: { doc: Doc | null; layout?: LayoutOptions }) {
+export function DocPreview({ doc, layout, pageRef }: { doc: Doc | null; layout?: LayoutOptions; pageRef?: Ref<HTMLElement> }) {
   if (!doc) {
     return (
       <section className="preview">
@@ -113,7 +113,7 @@ export function DocPreview({ doc, layout }: { doc: Doc | null; layout?: LayoutOp
   const { metadata, toc, blocks } = doc
   return (
     <section className="preview" aria-live="polite">
-      <article className={`page density-${layout?.density ?? 'standard'} title-spacing-${layout?.titleSpacing ?? 'standard'} align-${layout?.paragraphAlign ?? 'justify'}`}>
+      <article ref={pageRef} className={`page density-${layout?.density ?? 'standard'} title-spacing-${layout?.titleSpacing ?? 'standard'} align-${layout?.paragraphAlign ?? 'justify'}`}>
         <header className="cover-mini">
           <h1 className="doc-title">{metadata.title ?? 'Document sans titre'}</h1>
           {metadata.subtitle && <p className="subtitle">{metadata.subtitle}</p>}

@@ -454,3 +454,5 @@ body {
 .furniture-toggles label { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
 .layout-controls { padding: 12px; border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line)); border-radius: 8px; background: color-mix(in srgb, var(--panel-2) 70%, transparent); }
 @media (max-width: 760px) { .customizer-grid { grid-template-columns: 1fr; } }
+
+.download-error { color: var(--danger); background: var(--danger-bg); border-color: var(--danger-line); }

@@ -4,6 +4,7 @@
  */
 import { lazy, startTransition, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_RENDER_OPTIONS, health, type RenderOptions } from './lib/api'
+import { downloadPreviewPdf } from './lib/previewPdf'
 import type { Doc } from './lib/doc'
 import { Generator } from './modules/generator/Generator'
 import { DocPreview } from './modules/generator/DocPreview'
@@ -34,11 +35,12 @@ export default function App() {
   const [apiUp, setApiUp] = useState<boolean | null>(null)
   const [theme, setTheme] = useState<Theme>(readStoredTheme)
   const [previewOpen, setPreviewOpen] = useState(false)
-  const [downloadHandler, setDownloadHandler] = useState<(() => Promise<void>) | null>(null)
   const [downloadMessage, setDownloadMessage] = useState('')
+  const [downloadBusy, setDownloadBusy] = useState(false)
   const [generationStage, setGenerationStage] = useState<GenerationStage>(1)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
+  const previewPageRef = useRef<HTMLElement>(null)
   const switchTab = useCallback((nextTab: Tab) => {
     startTransition(() => setTab(nextTab))
   }, [])
@@ -50,7 +52,6 @@ export default function App() {
     try { localStorage.setItem('pdf-studio-theme', theme) } catch { /* stockage indisponible */ }
   }, [theme])
   const [renderOptions, setRenderOptions] = useState<RenderOptions>(DEFAULT_RENDER_OPTIONS)
-  const registerDownload = useCallback((handler: (() => Promise<void>) | null) => setDownloadHandler(() => handler), [])
 
   useEffect(() => {
     let alive = true
@@ -85,10 +86,17 @@ export default function App() {
   }
   const closePreview = () => { setPreviewOpen(false); setGenerationStage(3) }
   const handleDownload = async () => {
-    if (!downloadHandler) return
+    if (!previewPageRef.current || !doc) return
     setDownloadMessage('')
-    await downloadHandler()
-    setDownloadMessage('PDF téléchargé avec succès.')
+    setDownloadBusy(true)
+    try {
+      await downloadPreviewPdf(previewPageRef.current, renderOptions.paper ?? 'a4', doc.metadata.title ?? 'document')
+      setDownloadMessage('PDF téléchargé avec succès.')
+    } catch (error) {
+      setDownloadMessage(`Échec du téléchargement : ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setDownloadBusy(false)
+    }
   }
   return (
     <div className="app">
@@ -109,7 +117,7 @@ export default function App() {
         </section>
         {tab === 'generate' ? <div className="editor-stage"><ol className="flow-steps" aria-label="Progression de génération">
           {['Contenu', 'Structure', 'Présentation', 'Export'].map((label, index) => <li key={label} className={index + 1 === generationStage ? 'current' : index + 1 < generationStage ? 'complete' : ''}><span>{index + 1}</span>{label}</li>)}
-        </ol><Generator doc={doc} onDoc={setDoc} onStage={setGenerationStage} options={renderOptions} onOptions={setRenderOptions} onPreview={openPreview} onOpenPreview={openPreview} onDownloadChange={registerDownload}/>{doc && previewOpen && <div className="preview-overlay" role="presentation"><div className="preview-dialog" role="dialog" aria-modal="true" aria-labelledby="preview-title" aria-describedby="preview-description"><div className="preview-dialog-header"><div><p className="eyebrow">Aperçu du document</p><h2 id="preview-title">Vérifier le PDF</h2><p id="preview-description" className="muted">Parcourez l’intégralité du document avant de revenir à l’édition ou de le télécharger.</p></div><div className="preview-actions"><button ref={closeButtonRef} type="button" className="btn" onClick={closePreview}>← Retour à l’édition</button><button type="button" className="btn primary" onClick={() => void handleDownload()} disabled={!downloadHandler}>{downloadMessage ? '✓ PDF téléchargé' : '⬇ Télécharger le PDF'}</button></div></div>{downloadMessage && <p className="success-message" role="status" aria-live="polite">{downloadMessage}</p>}<DocPreview doc={doc} layout={renderOptions.layout}/></div></div>}</div> : <div id="panel-read"><Suspense fallback={<p className="muted" style={{ padding: '2rem' }} role="status">Chargement du lecteur…</p>}><PdfReader/></Suspense></div>}
+        </ol><Generator doc={doc} onDoc={setDoc} onStage={setGenerationStage} options={renderOptions} onOptions={setRenderOptions} onPreview={openPreview} onOpenPreview={openPreview}/>{doc && previewOpen && <div className="preview-overlay" role="presentation"><div className="preview-dialog" role="dialog" aria-modal="true" aria-labelledby="preview-title" aria-describedby="preview-description"><div className="preview-dialog-header"><div><p className="eyebrow">Aperçu du document</p><h2 id="preview-title">Vérifier le PDF</h2><p id="preview-description" className="muted">Parcourez l’intégralité du document avant de revenir à l’édition ou de le télécharger.</p></div><div className="preview-actions"><button ref={closeButtonRef} type="button" className="btn" onClick={closePreview}>← Retour à l’édition</button><button type="button" className="btn primary" onClick={() => void handleDownload()} disabled={!doc || downloadBusy} aria-busy={downloadBusy}>{downloadBusy ? 'Génération…' : downloadMessage.startsWith('Échec') ? 'Réessayer' : downloadMessage ? '✓ PDF téléchargé' : '⬇ Télécharger le PDF'}</button></div></div>{downloadMessage && <p className={`success-message${downloadMessage.startsWith('Échec') ? ' download-error' : ''}`} role="status" aria-live="polite">{downloadMessage}</p>}<DocPreview doc={doc} layout={renderOptions.layout} pageRef={previewPageRef}/></div></div>}</div> : <div id="panel-read"><Suspense fallback={<p className="muted" style={{ padding: '2rem' }} role="status">Chargement du lecteur…</p>}><PdfReader/></Suspense></div>}
       </main>
       <footer className="app-footer muted">PDF Studio · schéma doc/0.1</footer>
     </div>

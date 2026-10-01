@@ -13,7 +13,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   DEFAULT_RENDER_OPTIONS,
-  generatePdf,
   structureText,
   type PageFurniture,
   type RenderOptions,
@@ -83,14 +82,12 @@ interface GeneratorProps {
   onOptions: (o: RenderOptions) => void
   onPreview?: () => void
   onOpenPreview?: (event?: React.MouseEvent<HTMLElement>) => void
-  onDownloadChange?: (handler: (() => Promise<void>) | null) => void
 }
 
-export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, onOpenPreview, onDownloadChange }: GeneratorProps) {
+export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, onOpenPreview }: GeneratorProps) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'structure' | 'pdf' | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [downloaded, setDownloaded] = useState(false)
   const [fallbackMode, setFallbackMode] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const lastStructuredText = useRef('')
@@ -109,7 +106,6 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
     if (!file) return
     void file.text().then((content) => {
       setText(content)
-      setDownloaded(false)
       setError(null)
       setFallbackMode(false)
       onStage?.(1)
@@ -121,7 +117,6 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
   const structure = useCallback(async (reveal = false) => {
     if (!text.trim()) return
     lastStructuredText.current = text
-    setDownloaded(false)
     onStage?.(2)
     setBusy('structure')
     setError(null)
@@ -155,58 +150,8 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
     return () => window.clearTimeout(timer)
   }, [text, structure])
 
-  /** Télécharge le Blob PDF sous un nom dérivé du titre du document. */
-  const download = useCallback(async () => {
-    if (!text.trim()) return
-    setBusy('pdf')
-    setError(null)
-    try {
-      // Sans Doc structuré, on le produit d'abord (indispensable au rendu).
-      let current = doc
-      if (!current) {
-        try {
-          current = await structureText(text)
-        } catch {
-          const { structureTextClient } = await import('../../lib/structurizerClient')
-          current = structureTextClient(text)
-          setFallbackMode(true)
-        }
-        onDoc(current)
-      }
-      // jsPDF n'est chargé qu'au moment de générer.
-      const { backendCanGenerate, renderDocClient } = await import('../../lib/renderClient')
-      if (fallbackMode || !(await backendCanGenerate())) {
-        onStage?.(4)
-        setFallbackMode(true)
-        renderDocClient(current, options) // moteur jsPDF local
-        setDownloaded(true)
-        return
-      }
-      const blob = await generatePdf(text, options, current)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      const title = current.metadata.title ?? 'document'
-      a.href = url
-      a.download = `${title.toLowerCase().replace(/[^\wà-ÿ-]+/g, '-').slice(0, 60)}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
-      setDownloaded(true)
-      onStage?.(4)
-    } catch (err) {
-      setError(String(err instanceof Error ? err.message : err))
-    } finally {
-      setBusy(null)
-    }
-  }, [text, doc, options, onDoc, onStage, fallbackMode])
-
-  useEffect(() => {
-    onDownloadChange?.(download)
-    return () => onDownloadChange?.(null)
-  }, [download, onDownloadChange])
-
   const updateText = (value: string) => {
     setText(value)
-    setDownloaded(false)
     setError(null)
     onStage?.(1)
     onDoc(null)
@@ -214,7 +159,6 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
 
   const clearDocument = () => {
     setText('')
-    setDownloaded(false)
     setFallbackMode(false)
     setError(null)
     onStage?.(1)
@@ -270,11 +214,11 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         {!doc ? <button className="btn primary" onClick={() => void structure(true)} disabled={busy !== null || !text.trim()} aria-busy={busy === 'structure'}>
           {busy === 'structure' ? 'Structuration…' : '✦ Structurer le document'}
         </button> : <button type="button" className="btn primary" onClick={onOpenPreview} disabled={busy !== null}>
-          Voir l’aperçu et exporter
+          Voir l’aperçu
         </button>}
         <span className="document-state" role="status" aria-live="polite">
           <span className={`state-dot ${doc ? 'ready' : text.trim() ? 'attention' : ''}`} aria-hidden="true" />
-          {!text.trim() ? 'Brouillon : ajoutez votre contenu' : !doc ? 'Structure à actualiser' : downloaded ? 'PDF prêt' : 'Aperçu prêt à vérifier'}
+          {!text.trim() ? 'Brouillon : ajoutez votre contenu' : !doc ? 'Structure à actualiser' : 'Aperçu prêt à vérifier'}
         </span>
         {fallbackMode && (
           <span className="muted" role="status" title="Le backend Python est injoignable : structuration et rendu PDF exécutés localement dans le navigateur.">
