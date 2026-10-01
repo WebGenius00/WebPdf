@@ -29,6 +29,7 @@ export interface LayoutOptions {
 export interface RenderOptions {
   theme?: 'editorial' | 'corporate' | 'academic'
   paper?: 'a4' | 'letter'
+  font?: 'serif' | 'sans' | 'modern' | 'mono'
   header?: PageFurniture
   footer?: PageFurniture
   layout?: LayoutOptions
@@ -38,6 +39,7 @@ export interface RenderOptions {
 export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   theme: 'editorial',
   paper: 'a4',
+  font: 'serif',
   header: { enabled: true, left: 'PDF STUDIO', center: '', right: '{section}', onCover: false },
   footer: { enabled: true, left: '{title}', center: '', right: 'Page {page} sur {pages}', onCover: false },
   layout: { density: 'standard', paragraphAlign: 'justify', titleSpacing: 'standard' },

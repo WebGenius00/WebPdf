@@ -4,10 +4,9 @@
  * Flux :
  *   1. l'utilisateur colle/importe un texte (.txt/.md),
  *      ou charge le document d'exemple pour découvrir le moteur,
- *   2. "Structurer" appelle POST /api/structure → Doc JSON (aperçu à droite),
- *   3. "Télécharger le PDF" appelle POST /api/generate en envoyant le Doc
- *      JSON déjà validé : le PDF est strictement fidèle à l'aperçu,
- *   4. thème & format papier sont choisis ici et passés au renderer.
+ *   2. "Structurer" appelle POST /api/structure → Doc JSON,
+ *   3. l’aperçu A4/Letter calibré s’affiche en direct à droite,
+ *   4. le téléchargement capture cette feuille visible, sans second renderer.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -204,6 +203,18 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }
           >
             <option value="a4">A4</option>
             <option value="letter">Letter</option>
+          </select>
+        </label>
+        <label className="muted">
+          Police{' '}
+          <select
+            value={options.font ?? 'serif'}
+            onChange={(e) => onOptions({ ...options, font: e.target.value as RenderOptions['font'] })}
+          >
+            <option value="serif">Sérif classique</option>
+            <option value="sans">Sans sérif</option>
+            <option value="modern">Moderne</option>
+            <option value="mono">Monospace</option>
           </select>
         </label>
       </div>
