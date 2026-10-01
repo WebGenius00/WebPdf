@@ -114,6 +114,7 @@ class FurnitureCssTests(unittest.TestCase):
         self.assertIn('content: "PDF STUDIO"; text-align: left;', css)
         self.assertIn('content: "Page " counter(page) " sur " counter(pages);', css)
         self.assertIn('content: string(sectiontitle);', css)
+        self.assertIn('h1 + *, h2 + *, h3 + * { margin-top: 4mm !important; }', css)
 
     def test_custom_zones_expand_template_variables(self) -> None:
         css = renderer.build_css(furniture={

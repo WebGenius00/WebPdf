@@ -190,7 +190,10 @@ class PdfWriter {
     this.gap(level === 1 ? this.titleGap : Math.max(2, this.titleGap - 1))
     const label = number ? `${number}  ${text}` : text
     this.flow(label, this.pal.serif, level === 3 ? 'normal' : 'bold', size, this.pal.accent)
-    if (level <= 2) this.rule(this.pal.accent, level === 1 ? 0.8 : 0.3)
+    if (level <= 2) {
+      this.rule(this.pal.accent, level === 1 ? 0.8 : 0.3)
+      this.gap(3)
+    }
     else this.gap(1)
   }
 

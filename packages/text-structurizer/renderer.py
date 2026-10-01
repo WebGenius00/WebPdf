@@ -145,6 +145,8 @@ h1.first { break-before: auto; }
 h2 { font-size: 14pt; line-height: 1.28; margin: 7mm 0 3mm; color: #334155; }
 h3 { font-size: 11pt; line-height: 1.3; margin: 5mm 0 2.5mm; color: #475569; }
 .heading-number { color: #4f46e5; margin-right: 0.8mm; font-weight: 600; }
+/* La ligne de titre ne doit jamais toucher le bloc qui suit. */
+h1 + *, h2 + *, h3 + * { margin-top: 4mm !important; }
 
 /* ---------- Paragraphes & listes ---------- */
 p { margin: 0 0 3.8mm; text-align: justify; orphans: 2; widows: 2; hyphens: auto; }
@@ -338,7 +340,7 @@ def _layout_css(raw: dict[str, Any] | None) -> str:
             f"p {{ margin-bottom: {paragraph_gap}; text-align: {align}; }} "
             f"h1 {{ margin-top: {title_margin}; margin-bottom: {title_after}; padding-bottom: 3mm; }} "
             f"h2, h3 {{ margin-top: {title_margin}; margin-bottom: {block_gap}; }} "
-            "h1 + p, h2 + p, h3 + p { margin-top: 2.5mm; }")
+            "h1 + *, h2 + *, h3 + * { margin-top: 4mm !important; }")
 FURNITURE_TOKENS = {
     "title": "string(doctitle)",
     "section": "string(sectiontitle)",
