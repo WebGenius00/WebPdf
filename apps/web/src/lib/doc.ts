@@ -23,7 +23,7 @@ export interface DocMetadata {
 /** Entrée de table des matières (générée depuis les headings). */
 export interface TocEntry {
   level: 1 | 2 | 3
-  /** Numérotation automatique type "1", "1.2", "Annexe A"… */
+  /** Numérotation facultative écrite par l’utilisateur, vide sinon. */
   number: string
   text: string
   id: string
@@ -45,6 +45,7 @@ export interface HeadingBlock {
   type: 'heading'
   level: 1 | 2 | 3
   text: string
+  /** Préfixe saisi dans le titre (jamais calculé automatiquement). */
   number?: string
   id?: string
 }

@@ -129,6 +129,12 @@ def _heading_title(line: str, level: int) -> str:
     return line.strip().rstrip(":").strip()
 
 
+def _heading_number(line: str) -> str | None:
+    """Retourne le préfixe numérique saisi dans la ligne, sans en inventer."""
+    m = RE_NUMBERED_HEADING.match(line)
+    return m.group(1).strip() if m else None
+
+
 # --------------------------------------------------------------------------
 # 3. Classification → nœuds du document
 # --------------------------------------------------------------------------
@@ -241,8 +247,12 @@ def build_blocks(lines: list[RawLine]) -> list[dict]:
         lvl = _looks_like_heading(stripped)
         if lvl and not para:  # un titre ne coupe pas un paragraphe en cours
             flush_para()
-            blocks.append({"type": "heading", "level": lvl,
-                           "text": _heading_title(stripped, lvl)})
+            block = {"type": "heading", "level": lvl,
+                     "text": _heading_title(stripped, lvl)}
+            number = _heading_number(stripped)
+            if number:
+                block["number"] = number
+            blocks.append(block)
             i += 1
             continue
 
@@ -379,18 +389,13 @@ def build_document(raw_text: str) -> dict:
         blocks = _rebalance_levels(blocks)
 
     toc: list[dict] = []
-    counter = [0] * 4  # numbering 1..3
-
     numbered: list[dict] = []
     for b in blocks:
         if b["type"] == "heading":
             lvl = b["level"]
-            counter[lvl] += 1
-            for d in range(lvl + 1, 4):
-                counter[d] = 0
-            prefix = ".".join(str(counter[d]) for d in range(1, lvl + 1))
-            b = {**b, "number": prefix, "id": f"h-{len(toc) + 1}"}
-            toc.append({"level": lvl, "number": prefix, "text": b["text"], "id": b["id"]})
+            number = b.get("number", "")
+            b = {**b, "id": f"h-{len(toc) + 1}"}
+            toc.append({"level": lvl, "number": number, "text": b["text"], "id": b["id"]})
         numbered.append(b)
 
     meta = _infer_metadata(numbered, text, raw_text)

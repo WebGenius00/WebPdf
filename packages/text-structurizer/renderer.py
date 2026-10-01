@@ -268,9 +268,11 @@ def doc_to_html(doc: dict[str, Any], css: str = DEFAULT_CSS) -> str:
 
     toc_items = []
     for e in doc.get("toc", []):
+        number = str(e.get("number") or "").strip()
+        number_html = f'<span class="toc-number">{esc(number)}</span> ' if number else ""
         toc_items.append(
             f'<li class="l{e["level"]}"><a href="#{e["id"]}">'
-            f'<span class="toc-number">{esc(str(e["number"]))}</span> {esc(e["text"])}</a></li>'
+            f'{number_html}{esc(e["text"])}</a></li>'
         )
     toc = ('<nav class="toc"><h2>Sommaire</h2><ul>' + "".join(toc_items) + "</ul></nav>") if toc_items else ""
 

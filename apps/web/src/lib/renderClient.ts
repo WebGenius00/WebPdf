@@ -338,7 +338,8 @@ class PdfWriter {
       this.setFont(this.pal.sans, e.level === 1 ? 'bold' : 'normal', size)
       this.pdf.setTextColor(...(e.level === 1 ? this.pal.ink : this.pal.muted))
       const indent = (e.level - 1) * 6
-      this.pdf.text(`${e.number}  ${clean(e.text)}`, MARGIN + indent, this.y)
+      const label = e.number ? `${e.number}  ${clean(e.text)}` : clean(e.text)
+      this.pdf.text(label, MARGIN + indent, this.y)
       this.y += size * 0.5
     }
     this.gap(6)

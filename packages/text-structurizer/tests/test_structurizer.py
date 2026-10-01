@@ -73,7 +73,7 @@ class BuildDocumentTests(unittest.TestCase):
         self.assertEqual({entry["id"] for entry in doc["toc"]}, block_ids)
         self.assertEqual(doc["metadata"]["wordCount"], 4)
 
-    def test_plain_numbered_headings_keep_hierarchy_and_drop_source_numbers(self) -> None:
+    def test_plain_numbered_headings_keep_hierarchy_and_source_numbers(self) -> None:
         doc = structurizer.build_document(
             "Guide\n\nIntroduction\nTexte.\n\n"
             "1. Principes\nTexte.\n\n"
@@ -82,16 +82,16 @@ class BuildDocumentTests(unittest.TestCase):
         )
 
         headings = [b for b in doc["blocks"] if b["type"] == "heading"]
-        self.assertEqual([(b["level"], b["number"], b["text"]) for b in headings], [
-            (1, "1", "Introduction"),
-            (1, "2", "Principes"),
-            (2, "2.1", "Détail"),
-            (1, "3", "Suite"),
+        self.assertEqual([(b["level"], b.get("number"), b["text"]) for b in headings], [
+            (1, None, "Introduction"),
+            (1, "1", "Principes"),
+            (2, "1.1", "Détail"),
+            (1, "2", "Suite"),
         ])
 
 
 class RendererHtmlTests(unittest.TestCase):
-    def test_html_keeps_heading_numbers_and_inline_definitions(self) -> None:
+    def test_html_keeps_explicit_heading_numbers_and_inline_definitions(self) -> None:
         doc = {
             "metadata": {"title": "Rapport"},
             "toc": [{"level": 1, "number": "1", "text": "Introduction", "id": "h-1"}],

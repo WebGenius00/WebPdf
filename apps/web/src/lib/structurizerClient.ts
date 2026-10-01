@@ -70,6 +70,10 @@ function looksLikeHeading(line: string): 1 | 2 | 3 | null {
   return null
 }
 
+function headingNumber(line: string): string | undefined {
+  return RE_NUMBERED_HEADING.exec(line)?.[1]?.trim() || undefined
+}
+
 function headingTitle(line: string): string {
   const atx = RE_ATX_HEADING.exec(line)
   return (atx ? atx[2] : line).trim().replace(/:$/, '').trim()
@@ -176,7 +180,8 @@ function buildBlocks(lines: RawLine[]): Record<string, unknown>[] {
     const lvl = looksLikeHeading(stripped)
     if (lvl && !para.length) {
       flushPara()
-      blocks.push({ type: 'heading', level: lvl, text: headingTitle(stripped) })
+      const number = headingNumber(stripped)
+      blocks.push({ type: 'heading', level: lvl, text: headingTitle(stripped), ...(number ? { number } : {}) })
       i++
       continue
     }
@@ -278,19 +283,19 @@ export function structureTextClient(rawText: string): Doc {
     for (const b of blocks) if (b.type === 'heading') { b.level = 1; break }
   }
 
-  // Numérotation + TOC
+  // TOC fidèle au texte : aucune numérotation n’est inventée.
   const toc: TocEntry[] = []
-  const counter = [0, 0, 0, 0]
   const numbered: Record<string, unknown>[] = []
   for (const b of blocks) {
     if (b.type === 'heading') {
       const lvl = b.level as 1 | 2 | 3
-      counter[lvl]++
-      for (let d = lvl + 1; d <= 3; d++) counter[d] = 0
-      const prefix = counter.slice(1, lvl + 1).join('.')
       const id = `h-${slug(b.text as string)}-${toc.length + 1}`
-      numbered.push({ ...b, number: prefix, id })
-      toc.push({ level: lvl, number: prefix, text: b.text as string, id })
+      const number = headingNumber(b.text as string)
+      const block: Record<string, unknown> = number
+        ? { ...b, text: (b.text as string).replace(new RegExp(`^${number}\\s*`), '').trim(), number, id }
+        : { ...b, id }
+      numbered.push(block)
+      toc.push({ level: lvl, number: number ?? '', text: block.text as string, id })
     } else numbered.push(b)
   }
 

@@ -6,7 +6,9 @@ const PAPER_PIXELS = {
   a4: { width: 794, height: 1123 },
   letter: { width: 816, height: 1056 },
 } as const
-const PAGE_VERTICAL_PADDING = 56
+// .page utilise 56px de padding en haut et en bas (box-sizing border-box).
+// La pagination doit donc réserver les deux marges, pas une seule.
+const PAGE_VERTICAL_PADDING = 112
 
 function paperPixels(paper: 'a4' | 'letter', orientation: 'portrait' | 'landscape') {
   const size = PAPER_PIXELS[paper]
@@ -47,7 +49,7 @@ function Cover({ metadata }: { metadata: Doc['metadata'] }) {
 
 function TableOfContents({ toc }: { toc: Doc['toc'] }) {
   if (!toc.length) return null
-  return <nav className="toc" aria-label="Table des matières"><h2>Sommaire</h2><ul>{toc.map((entry) => <li key={entry.id} data-level={entry.level}><a href={`#${entry.id}`}><span className="num">{entry.number}</span> {entry.text}</a></li>)}</ul></nav>
+  return <nav className="toc" aria-label="Table des matières"><h2>Sommaire</h2><ul>{toc.map((entry) => <li key={entry.id} data-level={entry.level}><a href={`#${entry.id}`}>{entry.number && <span className="num">{entry.number}</span>} {entry.text}</a></li>)}</ul></nav>
 }
 
 interface DocPreviewProps {
