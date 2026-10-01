@@ -500,7 +500,8 @@ body {
 /* ---------- Feuilles d’aperçu réellement séparées ---------- */
 .paginated-preview { position: relative; overflow: visible; }
 .page-sheet { position: absolute; left: 50%; transform-origin: top center; overflow: hidden; background: white; }
-.page-sheet > .page { width: 100% !important; height: 100%; min-height: 0 !important; margin: 0; overflow: hidden; box-shadow: var(--shadow-lg), 0 0 0 1px rgb(0 0 0 / 0.05); }
+.page-sheet > .page { width: 100% !important; max-width: none; box-sizing: border-box; height: 100%; min-height: 0 !important; margin: 0; overflow: hidden; box-shadow: var(--shadow-lg), 0 0 0 1px rgb(0 0 0 / 0.05); }
+.preview-measure { max-width: none; box-sizing: border-box; }
 .preview-measure { position: absolute !important; left: -100000px; top: 0; visibility: hidden; transform: none !important; pointer-events: none; }
 
 .page { overflow-wrap: anywhere; }
@@ -512,3 +513,7 @@ body {
 .quality-warning strong { display: block; margin-bottom: 4px; color: var(--ink); }
 .quality-warning ul { margin: 4px 0 6px 18px; padding: 0; }
 .quality-warning span { color: var(--muted); }
+
+/* Fragmentation éditoriale : un bloc et son titre restent ensemble autant que possible. */
+.preview-block, .page table, .page figure, .page blockquote, .page pre { break-inside: avoid; page-break-inside: avoid; }
+.page h1, .page h2, .page h3 { break-after: avoid; page-break-after: avoid; }
