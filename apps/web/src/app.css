@@ -557,3 +557,8 @@ tbody tr:nth-child(even) { background: transparent; }
 .quick-drawer > summary:hover, .quick-drawer > summary:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
 .quick-drawer[open] > summary { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
 .quick-drawer .quick-shortcuts { margin-top: 7px; }
+
+/* Les options détaillées n’occupent aucun espace tant qu’un raccourci ne les demande pas. */
+.generator > .shortcut-only:not([open]) { display: none; }
+.generator > .shortcut-tools { display: none; }
+.generator > .shortcut-tools.shortcut-visible { display: flex; }

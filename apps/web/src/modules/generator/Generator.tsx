@@ -198,7 +198,16 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
 
   const openShortcut = (target: HTMLElement | null) => {
     if (!target) return
+    const wasOpen = target instanceof HTMLDetailsElement ? target.open : target.classList.contains('shortcut-visible')
+    document.querySelectorAll<HTMLElement>('.shortcut-only, .shortcut-tools').forEach((panel) => {
+      if (panel !== target) {
+        panel.classList.remove('shortcut-visible')
+        if (panel instanceof HTMLDetailsElement) panel.open = false
+      }
+    })
+    if (wasOpen) return
     if (target instanceof HTMLDetailsElement) target.open = true
+    else target.classList.add('shortcut-visible')
     target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }
 
@@ -319,7 +328,7 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         </nav>
       </details>
 
-      <details ref={furnitureRef} className="print-customizer">
+      <details ref={furnitureRef} className="print-customizer shortcut-only">
         <summary>Zones de page — en-tête et pied de page</summary>
         <p className="muted furniture-help">
           Variables : <code>{'{title}'}</code> titre du document · <code>{'{section}'}</code> section ·{' '}
@@ -350,7 +359,7 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         </button>
       </details>
 
-      <details ref={layoutRef} className="print-customizer layout-customizer">
+      <details ref={layoutRef} className="print-customizer layout-customizer shortcut-only">
         <summary>Rythme du document — espacement et texte</summary>
         <p className="muted furniture-help">Modifiez ces réglages pour corriger les espacements et l’équilibre du document avant de télécharger le PDF.</p>
         <div className="layout-controls">
@@ -378,14 +387,14 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
       {error && <p className="error">{error}</p>}
 
       <label className="source-label" htmlFor="document-source">Contenu du document</label>
-      <div ref={formatRef} className="editor-tools" role="toolbar" aria-label="Outils de mise en forme du texte">
+      <div ref={formatRef} className="editor-tools shortcut-tools" role="toolbar" aria-label="Outils de mise en forme du texte">
         <span className="editor-tools-label">Mise en forme</span>
         <button type="button" className="format-tool" onClick={() => formatSelection('**')} title="Gras">G</button>
         <button type="button" className="format-tool italic" onClick={() => formatSelection('*')} title="Italique">I</button>
         <button type="button" className="format-tool underline" onClick={() => formatSelection('++')} title="Souligner la sélection">S</button>
         <span className="muted format-help">Sélectionnez un passage puis choisissez un outil</span>
       </div>
-      <details ref={searchRef} className="search-replace">
+      <details ref={searchRef} className="search-replace shortcut-only">
         <summary>Rechercher et remplacer</summary>
         <div className="search-replace-fields">
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Texte à rechercher" aria-label="Texte à rechercher" />
