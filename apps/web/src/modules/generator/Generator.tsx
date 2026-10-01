@@ -13,7 +13,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { generatePdf, structureText, type RenderOptions } from '../../lib/api'
 import type { Doc } from '../../lib/doc'
-import { backendCanGenerate, renderDocClient } from '../../lib/renderClient'
 import { SAMPLE_TEXT } from './sample'
 
 interface GeneratorProps {
@@ -81,6 +80,8 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
         }
         onDoc(current)
       }
+      // jsPDF n'est chargé qu'au moment de générer.
+      const { backendCanGenerate, renderDocClient } = await import('../../lib/renderClient')
       if (fallbackMode || !(await backendCanGenerate())) {
         setFallbackMode(true)
         renderDocClient(current, options) // moteur jsPDF local

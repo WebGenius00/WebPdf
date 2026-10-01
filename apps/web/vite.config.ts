@@ -20,6 +20,6 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 900, // pdfjs-dist est volumineux par nature
+    chunkSizeWarningLimit: 1400, // le worker pdf.js (1,4 Mo) est un asset à part, chargé à la demande
   },
 })
