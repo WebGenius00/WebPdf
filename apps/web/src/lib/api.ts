@@ -10,10 +10,29 @@ import { isDoc, type Doc } from './doc'
 
 const BASE = import.meta.env.VITE_API_URL ?? ''
 
-/** Options de rendu transmises à /api/generate (thème & format papier). */
+/** Une ligne d'en-tête ou de pied de page, placée par zone de page. */
+export interface PageFurniture {
+  enabled: boolean
+  left: string
+  center: string
+  right: string
+  onCover: boolean
+}
+
+/** Options de rendu transmises à /api/generate. */
 export interface RenderOptions {
   theme?: 'editorial' | 'corporate' | 'academic'
   paper?: 'a4' | 'letter'
+  header?: PageFurniture
+  footer?: PageFurniture
+}
+
+/** Variables utilisables dans les champs : {title}, {section}, {page}, {pages}. */
+export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
+  theme: 'editorial',
+  paper: 'a4',
+  header: { enabled: true, left: 'PDF STUDIO', center: '', right: '{section}', onCover: false },
+  footer: { enabled: true, left: '{title}', center: '', right: 'Page {page} sur {pages}', onCover: false },
 }
 
 async function jsonOrThrow(res: Response): Promise<unknown> {

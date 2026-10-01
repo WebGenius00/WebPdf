@@ -15,7 +15,7 @@
 
 import { jsPDF } from 'jspdf'
 import type { Block, Doc } from './doc'
-import type { RenderOptions } from './api'
+import { DEFAULT_RENDER_OPTIONS, type PageFurniture, type RenderOptions } from './api'
 
 /* ─── Géométrie & typographie ──────────────────────────────────────────── */
 
@@ -57,14 +57,21 @@ class PdfWriter {
   private readonly pageH: number
   private readonly contentW: number
   private readonly pal: Palette
+  private readonly header: PageFurniture
+  private readonly footerOptions: PageFurniture
+  private readonly sectionsByPage: string[] = ['']
+  private currentSection = ''
+  private docTitle = 'Document'
   pageNum = 0
 
-  constructor(paper: 'a4' | 'letter', theme: keyof typeof THEMES) {
+  constructor(paper: 'a4' | 'letter', theme: keyof typeof THEMES, options: RenderOptions) {
     const p = PAPER[paper] ?? PAPER.a4
     this.pdf = new jsPDF({ unit: 'mm', format: paper === 'letter' ? 'letter' : 'a4' })
     this.pageH = p.h
     this.contentW = p.w - 2 * MARGIN
     this.pal = THEMES[theme] ?? THEMES.editorial
+    this.header = { ...DEFAULT_RENDER_OPTIONS.header!, ...options.header }
+    this.footerOptions = { ...DEFAULT_RENDER_OPTIONS.footer!, ...options.footer }
     this.y = MARGIN
   }
 
@@ -77,6 +84,7 @@ class PdfWriter {
   private newPage(): void {
     this.pdf.addPage()
     this.pageNum += 1
+    this.sectionsByPage[this.pageNum] = this.currentSection
     this.y = MARGIN
   }
 
@@ -148,8 +156,13 @@ class PdfWriter {
   heading(level: 1 | 2 | 3, text: string, number?: string): void {
     const sizes = { 1: 20, 2: 15, 3: 12.5 } as const
     const size = sizes[level]
-    this.ensure(size * 2.2)
-    if (level === 1 && this.pageNum > 0) this.newPage()
+    if (level === 1) {
+      this.currentSection = text
+      if (this.pageNum > 0) this.newPage()
+      else this.ensure(size * 2.2)
+    } else {
+      this.ensure(size * 2.2)
+    }
     this.gap(level === 1 ? 6 : 4)
     const label = number ? `${number}  ${text}` : text
     this.flow(label, this.pal.serif, level === 3 ? 'normal' : 'bold', size, this.pal.accent)
@@ -319,14 +332,72 @@ class PdfWriter {
     }
   }
 
+  setDocumentTitle(title: string): void {
+    this.docTitle = clean(title)
+    this.sectionsByPage[0] = this.docTitle
+  }
+
+  private resolveFurniture(text: string, page: number, total: number, section: string): string {
+    return text.replace(/\{(title|section|page|pages)\}/g, (_match, token: string) => {
+      const values: Record<string, string> = {
+        title: this.docTitle,
+        section,
+        page: String(page),
+        pages: String(total),
+      }
+      return values[token] ?? ''
+    })
+  }
+
+  private drawFurnitureLine(
+    config: PageFurniture,
+    edge: 'top' | 'bottom',
+    page: number,
+    total: number,
+    section: string,
+    cover: boolean,
+  ): void {
+    if (!config.enabled || (cover && !config.onCover)) return
+    const zones = [config.left, config.center, config.right]
+    if (!zones.some((zone) => zone.trim())) return
+
+    const pageW = this.pdf.internal.pageSize.getWidth()
+    const ruleY = edge === 'top' ? 17 : this.pageH - 17
+    this.pdf.setDrawColor(...this.pal.muted)
+    this.pdf.setLineWidth(0.18)
+    this.pdf.line(MARGIN, ruleY, pageW - MARGIN, ruleY)
+    this.setFont(this.pal.sans, 'normal', 7.5)
+
+    const textY = edge === 'top' ? 12.5 : this.pageH - 11.5
+    const positions = [MARGIN, pageW / 2, pageW - MARGIN]
+    const aligns: Array<'left' | 'center' | 'right'> = ['left', 'center', 'right']
+    const maxWidth = this.contentW / 3 - 2
+    zones.forEach((template, index) => {
+      const value = clean(this.resolveFurniture(template, page, total, section))
+        .replace(/[\r\n\u0000-\u001f\u007f]/g, ' ')
+        .slice(0, 120)
+      if (!value) return
+      let fitted = value
+      if (this.pdf.getTextWidth(fitted) > maxWidth) {
+        while (fitted.length > 0 && this.pdf.getTextWidth(`${fitted}...`) > maxWidth) {
+          fitted = fitted.slice(0, -1)
+        }
+        fitted = fitted ? `${fitted}...` : ''
+      }
+      if (!fitted) return
+      this.pdf.setTextColor(...(edge === 'top' && index === 0 ? this.pal.accent : this.pal.muted))
+      this.pdf.text(fitted, positions[index], textY, { align: aligns[index] })
+    })
+  }
+
   footer(): void {
     const total = this.pdf.getNumberOfPages()
-    const pageW = this.pdf.internal.pageSize.getWidth()
     for (let i = 1; i <= total; i++) {
       this.pdf.setPage(i)
-      this.setFont(this.pal.sans, 'normal', 8)
-      this.pdf.setTextColor(...this.pal.muted)
-      this.pdf.text(String(i), pageW - MARGIN, this.pageH - 12, { align: 'right' })
+      const cover = i === 1
+      const section = this.sectionsByPage[i - 1] ?? ''
+      this.drawFurnitureLine(this.header, 'top', i, total, section, cover)
+      this.drawFurnitureLine(this.footerOptions, 'bottom', i, total, section, cover)
     }
   }
 
@@ -338,7 +409,8 @@ class PdfWriter {
 
 /** Point d'entrée public : Doc JSON → fichier PDF téléchargé (côté client). */
 export function renderDocClient(doc: Doc, options: RenderOptions = {}): void {
-  const w = new PdfWriter(options.paper ?? 'a4', options.theme ?? 'editorial')
+  const w = new PdfWriter(options.paper ?? 'a4', options.theme ?? 'editorial', options)
+  w.setDocumentTitle(doc.metadata.title ?? 'Document')
   w.cover(doc)
   w.toc(doc)
   w.blocks(doc)

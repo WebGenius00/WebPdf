@@ -11,9 +11,69 @@
  */
 
 import { useCallback, useRef, useState } from 'react'
-import { generatePdf, structureText, type RenderOptions } from '../../lib/api'
+import {
+  DEFAULT_RENDER_OPTIONS,
+  generatePdf,
+  structureText,
+  type PageFurniture,
+  type RenderOptions,
+} from '../../lib/api'
 import type { Doc } from '../../lib/doc'
 import { SAMPLE_TEXT } from './sample'
+
+interface FurnitureEditorProps {
+  title: string
+  value: PageFurniture
+  onChange: (patch: Partial<PageFurniture>) => void
+}
+
+function FurnitureEditor({ title, value, onChange }: FurnitureEditorProps) {
+  const zones = [
+    { key: 'left', label: 'Gauche', placeholder: 'PDF STUDIO' },
+    { key: 'center', label: 'Centre', placeholder: 'Optionnel' },
+    { key: 'right', label: 'Droite', placeholder: '{section}' },
+  ] as const
+
+  return (
+    <fieldset className="furniture-group">
+      <legend>{title}</legend>
+      <div className="furniture-toggles">
+        <label>
+          <input
+            type="checkbox"
+            checked={value.enabled}
+            onChange={(e) => onChange({ enabled: e.target.checked })}
+          />
+          Afficher
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={value.onCover}
+            disabled={!value.enabled}
+            onChange={(e) => onChange({ onCover: e.target.checked })}
+          />
+          Aussi sur la couverture
+        </label>
+      </div>
+      <div className="furniture-fields">
+        {zones.map(({ key, label, placeholder }) => (
+          <label key={key}>
+            <span>{label}</span>
+            <input
+              type="text"
+              value={value[key]}
+              maxLength={120}
+              disabled={!value.enabled}
+              placeholder={placeholder}
+              onChange={(e) => onChange({ [key]: e.target.value })}
+            />
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
 
 interface GeneratorProps {
   doc: Doc | null
@@ -28,6 +88,13 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
   const [error, setError] = useState<string | null>(null)
   const [fallbackMode, setFallbackMode] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const header = options.header ?? DEFAULT_RENDER_OPTIONS.header!
+  const footer = options.footer ?? DEFAULT_RENDER_OPTIONS.footer!
+
+  const updateFurniture = (kind: 'header' | 'footer', patch: Partial<PageFurniture>) => {
+    const current = options[kind] ?? DEFAULT_RENDER_OPTIONS[kind]!
+    onOptions({ ...options, [kind]: { ...current, ...patch } })
+  }
 
   /** Import fichier .txt / .md côté client (lecture locale, aucun upload). */
   const importFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,6 +221,35 @@ export function Generator({ doc, onDoc, options, onOptions }: GeneratorProps) {
           </span>
         )}
       </div>
+
+      <details className="print-customizer">
+        <summary>Personnaliser les en-têtes et pieds de page</summary>
+        <p className="muted furniture-help">
+          Variables : <code>{'{title}'}</code> titre du document · <code>{'{section}'}</code> section ·{' '}
+          <code>{'{page}'}</code> page actuelle · <code>{'{pages}'}</code> nombre total de pages.
+        </p>
+        <FurnitureEditor
+          title="En-tête"
+          value={header}
+          onChange={(patch) => updateFurniture('header', patch)}
+        />
+        <FurnitureEditor
+          title="Pied de page"
+          value={footer}
+          onChange={(patch) => updateFurniture('footer', patch)}
+        />
+        <button
+          type="button"
+          className="btn reset-furniture"
+          onClick={() => onOptions({
+            ...options,
+            header: { ...DEFAULT_RENDER_OPTIONS.header! },
+            footer: { ...DEFAULT_RENDER_OPTIONS.footer! },
+          })}
+        >
+          Réinitialiser les en-têtes et pieds de page
+        </button>
+      </details>
 
       {error && <p className="error">{error}</p>}
 

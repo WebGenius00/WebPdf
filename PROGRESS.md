@@ -15,8 +15,8 @@
 - [~] Phase 7 — Tests & optimisations (tests du structurizer ajoutés ; couverture API et lecteur à compléter)
 - [ ] Phase 8 — Déploiement
 
-## 🔥 Session 01/10/2026 — structurizer, tests & mise en page PDF
-- [x] Ajout de 6 tests Python sans dépendance externe, exécutés par `npm test`.
+## 🔥 Session 01/10/2026 — structurizer, tests & personnalisation PDF
+- [x] Suite de 11 tests Python sans dépendance externe, exécutés par `npm test`.
 - [x] Correction de la détection des intertitres isolés d'un mot (ex. « Introduction »).
 - [x] Les lignes d'auteur (« Par … », « By … ») ne sont plus classées comme titres/sommaire.
 - [x] Rééquilibrage de la hiérarchie après promotion du premier H2 en H1, pour éviter les sauts H1 → H3.
@@ -24,6 +24,8 @@
 - [x] Refonte du style de rendu : paire Liberation Serif/Sans, couverture éditoriale, marges d'impression, titres et tableaux affinés.
 - [x] En-têtes courants (nom de section), marque discrète et pieds de page (titre du document + page X/Y).
 - [x] Contrôle visuel et génération réussie sur les 3 thèmes (Editorial/Corporate/Academic) et les 2 formats (A4/Letter), 4 pages chacun.
+- [x] Réglages UI/API des en-têtes et pieds : affichage, couverture, zones gauche/centre/droite et variables dynamiques ; rendu disponible côté WeasyPrint et jsPDF local.
+- [x] Build frontend, typecheck API et génération E2E via API validés.
 - [ ] Suite : ajouter des tests API et des tests navigateur (lecteur PDF, documents volumineux).
 
 ## 🚧 Déploiement Cloudflare Pages

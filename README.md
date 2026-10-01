@@ -40,8 +40,12 @@ Autres scripts : `npm run build` (application web), `npm run typecheck`, `npm te
 
 - `GET /api/health` → `{status:"ok", schema:"doc/0.1"}`
 - `POST /api/structure` `{text}` → Doc JSON
-- `POST /api/generate` `{text, doc?, theme?, paper?}` → `application/pdf`
+- `POST /api/generate` `{text, doc?, theme?, paper?, header?, footer?}` → `application/pdf`
   (si `doc` fourni : rendu direct, sans re-structuration)
+
+Les options `header` et `footer` acceptent `enabled`, `left`, `center`, `right` et `onCover`.
+Les champs de texte peuvent utiliser `{title}`, `{section}`, `{page}` et `{pages}`.
+Les valeurs par défaut conservent l'identité PDF Studio et la pagination existantes.
 
 ## Notes de conception
 

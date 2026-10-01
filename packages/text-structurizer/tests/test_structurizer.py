@@ -10,6 +10,7 @@ PACKAGE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PACKAGE_DIR))
 
 import structurizer  # noqa: E402
+import renderer  # noqa: E402
 
 
 class NormalizeTests(unittest.TestCase):
@@ -71,6 +72,52 @@ class BuildDocumentTests(unittest.TestCase):
         block_ids = {block["id"] for block in doc["blocks"] if block["type"] == "heading"}
         self.assertEqual({entry["id"] for entry in doc["toc"]}, block_ids)
         self.assertEqual(doc["metadata"]["wordCount"], 4)
+
+
+class FurnitureCssTests(unittest.TestCase):
+    def test_default_header_and_footer_keep_dynamic_page_labels(self) -> None:
+        css = renderer.build_css()
+
+        self.assertIn('content: "PDF STUDIO"; text-align: left;', css)
+        self.assertIn('content: "Page " counter(page) " sur " counter(pages);', css)
+        self.assertIn('content: string(sectiontitle);', css)
+
+    def test_custom_zones_expand_template_variables(self) -> None:
+        css = renderer.build_css(furniture={
+            "header": {
+                "enabled": True,
+                "left": "Dossier : {title}",
+                "center": "{page}/{pages}",
+                "right": "{section}",
+            },
+        })
+
+        self.assertIn('content: "Dossier : " string(doctitle); text-align: left;', css)
+        self.assertIn('content: counter(page) "/" counter(pages); text-align: center;', css)
+        self.assertIn('content: string(sectiontitle); text-align: right;', css)
+
+    def test_user_text_is_escaped_as_a_css_string(self) -> None:
+        label = 'Dossier "Alpha"; } @page { color: red;'
+        css = renderer.build_css(furniture={"header": {"left": label}})
+
+        self.assertIn(f'content: {renderer._css_string(label)}; text-align: left;', css)
+        self.assertNotIn(f'content: {label};', css)
+
+    def test_disabled_furniture_is_hidden_and_cover_can_be_enabled(self) -> None:
+        css = renderer.build_css(furniture={
+            "header": {"enabled": False},
+            "footer": {"enabled": True, "onCover": True, "left": "Confidentiel"},
+        })
+
+        self.assertIn('@top-left { content: none; text-align: left; border: 0; padding: 0;', css)
+        self.assertIn('@page :first { @bottom-left { content: "Confidentiel";', css)
+
+    def test_cli_accepts_furniture_json(self) -> None:
+        options = renderer.parse_args([
+            "--stdin", "/tmp/out.pdf", "--furniture", '{"header":{"left":"Projet"}}',
+        ])
+
+        self.assertEqual(options["furniture"], '{"header":{"left":"Projet"}}')
 
 
 if __name__ == "__main__":

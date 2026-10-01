@@ -195,6 +195,42 @@ body {
 .error { color: var(--danger); font-size: 13px; background: var(--danger-bg); border: 1px solid var(--danger-line); padding: 10px 12px; border-radius: var(--radius-sm); }
 .stats { text-align: right; margin: 6px 2px 0; }
 
+/* ---------- Personnalisation des en-têtes / pieds de page ---------- */
+.print-customizer {
+  margin: 0 0 12px; padding: 12px 14px;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+}
+.print-customizer > summary {
+  cursor: pointer; color: var(--ink); font-size: 13px; font-weight: 600;
+  list-style-position: outside; margin-left: 14px;
+}
+.print-customizer[open] > summary { margin-bottom: 10px; }
+.furniture-help { margin: 0 0 12px; line-height: 1.7; }
+.furniture-help code {
+  padding: 1px 4px; border-radius: 4px; background: var(--panel-2);
+  color: var(--accent); font-size: 11px;
+}
+.furniture-group {
+  min-width: 0; margin: 10px 0; padding: 10px 12px 12px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+}
+.furniture-group legend { padding: 0 5px; color: var(--ink); font-size: 12px; font-weight: 600; }
+.furniture-toggles { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 10px; }
+.furniture-toggles label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.furniture-toggles input { accent-color: var(--accent); }
+.furniture-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.furniture-fields label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: 11px; }
+.furniture-fields input {
+  width: 100%; min-width: 0; padding: 7px 9px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel-2); color: var(--ink); font: inherit; font-size: 12px;
+}
+.furniture-fields input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.furniture-fields input:disabled { opacity: 0.5; cursor: not-allowed; }
+.reset-furniture { margin-top: 2px; }
+@media (max-width: 640px) { .furniture-fields { grid-template-columns: 1fr; } }
+
 /* ---------- Générateur ---------- */
 .source {
   width: 100%; min-height: 58vh; resize: vertical;

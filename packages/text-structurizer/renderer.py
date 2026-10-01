@@ -13,6 +13,7 @@ Options :
   --theme {editorial|corporate|academic}         ← palette typographique
   --paper {a4|letter}                            ← format de page
   --css theme.css                                ← CSS additionnel (personnalisation)
+  --furniture JSON                               ← en-têtes/pieds de page configurés
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ DEFAULT_CSS = """
   margin: 26mm 21mm 24mm;
   @top-left {
     content: "PDF STUDIO";
+    width: 33%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font: 700 7.5pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
     letter-spacing: 1pt; color: #4f46e5;
     vertical-align: bottom; padding-bottom: 2.2mm;
@@ -35,13 +37,23 @@ DEFAULT_CSS = """
   }
   @top-right {
     content: string(sectiontitle);
+    width: 33%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
     color: #64748b; text-align: right;
     vertical-align: bottom; padding-bottom: 2.2mm;
     border-bottom: 0.6pt solid #dbe2ea;
   }
+  @top-center {
+    content: "";
+    width: 34%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
+    color: #64748b; text-align: center;
+    vertical-align: bottom; padding-bottom: 2.2mm;
+    border-bottom: 0.6pt solid #dbe2ea;
+  }
   @bottom-left {
     content: string(doctitle);
+    width: 33%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
     color: #7b8495;
     vertical-align: top; padding-top: 2.2mm;
@@ -49,8 +61,17 @@ DEFAULT_CSS = """
   }
   @bottom-right {
     content: "Page " counter(page) " sur " counter(pages);
+    width: 33%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
     color: #475569; text-align: right;
+    vertical-align: top; padding-top: 2.2mm;
+    border-top: 0.6pt solid #dbe2ea;
+  }
+  @bottom-center {
+    content: "";
+    width: 34%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
+    color: #7b8495; text-align: center;
     vertical-align: top; padding-top: 2.2mm;
     border-top: 0.6pt solid #dbe2ea;
   }
@@ -58,8 +79,10 @@ DEFAULT_CSS = """
 @page :first {
   margin: 22mm 21mm;
   @top-left { content: none; border: 0; }
+  @top-center { content: none; border: 0; }
   @top-right { content: none; border: 0; }
   @bottom-left { content: none; border: 0; }
+  @bottom-center { content: none; border: 0; }
   @bottom-right { content: none; border: 0; }
 }
 
@@ -278,11 +301,98 @@ PAPERS: dict[str, str] = {
 }
 
 
-def build_css(theme: str = "editorial", paper: str = "a4", extra: str | None = None) -> str:
-    """Compose le CSS final : base + overrides format + thème + personnalisation."""
+DEFAULT_FURNITURE: dict[str, dict[str, Any]] = {
+    "header": {"enabled": True, "left": "PDF STUDIO", "center": "", "right": "{section}", "onCover": False},
+    "footer": {"enabled": True, "left": "{title}", "center": "", "right": "Page {page} sur {pages}", "onCover": False},
+}
+FURNITURE_TOKENS = {
+    "title": "string(doctitle)",
+    "section": "string(sectiontitle)",
+    "page": "counter(page)",
+    "pages": "counter(pages)",
+}
+FURNITURE_TOKEN_RE = re.compile(r"\{(title|section|page|pages)\}")
+FURNITURE_ZONES = ("left", "center", "right")
+
+
+def _normalize_furniture(raw: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    """Complète la configuration et contraint les champs texte aux limites UI/API."""
+    source = raw if isinstance(raw, dict) else {}
+    result: dict[str, dict[str, Any]] = {}
+    for kind, defaults in DEFAULT_FURNITURE.items():
+        candidate = source.get(kind)
+        candidate = candidate if isinstance(candidate, dict) else {}
+        normalized: dict[str, Any] = {
+            "enabled": candidate.get("enabled") if isinstance(candidate.get("enabled"), bool) else defaults["enabled"],
+            "onCover": candidate.get("onCover") if isinstance(candidate.get("onCover"), bool) else defaults["onCover"],
+        }
+        for zone in FURNITURE_ZONES:
+            value = candidate.get(zone, defaults[zone])
+            if not isinstance(value, str):
+                value = defaults[zone]
+            normalized[zone] = re.sub(r"[\x00-\x1f\x7f]", " ", value)[:120]
+        result[kind] = normalized
+    return result
+
+
+def _css_string(value: str) -> str:
+    """Encode une chaîne en littéral CSS (les valeurs utilisateur restent du texte)."""
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _template_content(template: str) -> str:
+    """Transforme les balises de texte en composantes CSS content() sûres."""
+    parts: list[str] = []
+    cursor = 0
+    for match in FURNITURE_TOKEN_RE.finditer(template):
+        literal = template[cursor:match.start()]
+        if literal:
+            parts.append(_css_string(literal))
+        parts.append(FURNITURE_TOKENS[match.group(1)])
+        cursor = match.end()
+    tail = template[cursor:]
+    if tail:
+        parts.append(_css_string(tail))
+    return " ".join(parts) if parts else '""'
+
+
+def _furniture_css(raw: dict[str, Any] | None) -> str:
+    settings = _normalize_furniture(raw)
+    rules: list[str] = []
+    box_styles = {
+        "top": "vertical-align: bottom; padding-bottom: 2.2mm; border-bottom: 0.6pt solid #dbe2ea;",
+        "bottom": "vertical-align: top; padding-top: 2.2mm; border-top: 0.6pt solid #dbe2ea;",
+    }
+    for kind, edge in (("header", "top"), ("footer", "bottom")):
+        config = settings[kind]
+        enabled = config["enabled"] and any(config[zone].strip() for zone in FURNITURE_ZONES)
+        for zone in FURNITURE_ZONES:
+            position = f"{edge}-{zone}"
+            text = config[zone]
+            content = _template_content(text) if enabled and text.strip() else "none"
+            align = {"left": "left", "center": "center", "right": "right"}[zone]
+            empty_style = "" if enabled else "border: 0; padding: 0;"
+            rules.append(f"@page {{ @{position} {{ content: {content}; text-align: {align}; {empty_style} }} }}")
+
+            if config["onCover"] and enabled:
+                cover_content = _template_content(text) if text.strip() else "none"
+                cover_style = box_styles[edge] if text.strip() else "border: 0; padding: 0;"
+                rules.append(f"@page :first {{ @{position} {{ content: {cover_content}; text-align: {align}; {cover_style} }} }}")
+    return "\n".join(rules)
+
+
+def build_css(
+    theme: str = "editorial",
+    paper: str = "a4",
+    extra: str | None = None,
+    furniture: dict[str, Any] | None = None,
+) -> str:
+    """Compose le CSS : format, thème, CSS optionnel et zones courantes configurées."""
     parts = [DEFAULT_CSS, PAPERS.get(paper.lower(), ""), THEMES.get(theme.lower(), "")]
     if extra:
         parts.append(extra)
+    parts.append(_furniture_css(furniture))
     return "\n".join(p for p in parts if p.strip())
 
 
@@ -296,7 +406,7 @@ def render_pdf(doc: dict[str, Any], out_path: str, css: str | None = None) -> st
 
 def parse_args(argv: list[str]) -> dict[str, str]:
     """Mini-parseur CLI sans dépendance : positions + options nommées."""
-    opts = {"theme": "editorial", "paper": "a4", "css": "", "doc": "", "out": ""}
+    opts = {"theme": "editorial", "paper": "a4", "css": "", "furniture": "", "doc": "", "out": ""}
     positional: list[str] = []
     i = 0
     while i < len(argv):
@@ -307,11 +417,13 @@ def parse_args(argv: list[str]) -> dict[str, str]:
             i += 1; opts["paper"] = argv[i]
         elif a == "--css":
             i += 1; opts["css"] = argv[i]
+        elif a == "--furniture":
+            i += 1; opts["furniture"] = argv[i]
         else:
             positional.append(a)
         i += 1
     if len(positional) < 2:
-        raise SystemExit("Usage : renderer.py (--stdin|doc.json) out.pdf [--theme X] [--paper Y] [--css f.css]")
+        raise SystemExit("Usage : renderer.py (--stdin|doc.json) out.pdf [--theme X] [--paper Y] [--css f.css] [--furniture JSON]")
     opts["doc"], opts["out"] = positional[0], positional[1]
     return opts
 
@@ -328,7 +440,8 @@ def main() -> None:
     if opts["css"]:
         with open(opts["css"], encoding="utf-8") as f:
             extra_css = f.read()
-    css = build_css(opts["theme"], opts["paper"], extra_css or None)
+    furniture = json.loads(opts["furniture"]) if opts["furniture"] else None
+    css = build_css(opts["theme"], opts["paper"], extra_css or None, furniture)
     out = render_pdf(doc, opts["out"], css)
     print(f"PDF généré : {out}")
 

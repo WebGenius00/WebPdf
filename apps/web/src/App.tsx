@@ -10,7 +10,7 @@
  */
 
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { health, type RenderOptions } from './lib/api'
+import { DEFAULT_RENDER_OPTIONS, health, type RenderOptions } from './lib/api'
 import type { Doc } from './lib/doc'
 import { Generator } from './modules/generator/Generator'
 import { DocPreview } from './modules/generator/DocPreview'
@@ -93,7 +93,7 @@ export default function App() {
     }
   }, [theme])
   // Options de rendu partagées entre le générateur (UI) et l'API.
-  const [renderOptions, setRenderOptions] = useState<RenderOptions>({ theme: 'editorial', paper: 'a4' })
+  const [renderOptions, setRenderOptions] = useState<RenderOptions>(DEFAULT_RENDER_OPTIONS)
 
   // Sonde backend périodique : bandeau d'avertissement si API injoignable.
   useEffect(() => {

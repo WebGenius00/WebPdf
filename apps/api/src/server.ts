@@ -94,6 +94,40 @@ interface GenerateBody {
   doc?: unknown
   theme?: string
   paper?: string
+  header?: unknown
+  footer?: unknown
+}
+
+interface PageFurniture {
+  enabled: boolean
+  left: string
+  center: string
+  right: string
+  onCover: boolean
+}
+
+const DEFAULT_HEADER: PageFurniture = {
+  enabled: true, left: 'PDF STUDIO', center: '', right: '{section}', onCover: false,
+}
+const DEFAULT_FOOTER: PageFurniture = {
+  enabled: true, left: '{title}', center: '', right: 'Page {page} sur {pages}', onCover: false,
+}
+
+/** N'accepte que du texte court et des booléens : CSS toujours fabriqué côté Python. */
+function normalizeFurniture(value: unknown, defaults: PageFurniture): PageFurniture {
+  const input = typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Partial<PageFurniture>
+    : {}
+  const text = (candidate: unknown, fallback: string) => typeof candidate === 'string'
+    ? candidate.replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, 120)
+    : fallback
+  return {
+    enabled: typeof input.enabled === 'boolean' ? input.enabled : defaults.enabled,
+    left: text(input.left, defaults.left),
+    center: text(input.center, defaults.center),
+    right: text(input.right, defaults.right),
+    onCover: typeof input.onCover === 'boolean' ? input.onCover : defaults.onCover,
+  }
 }
 
 const app = Fastify({ logger: { level: 'info' } })
@@ -143,6 +177,10 @@ app.post('/api/generate', async (request, reply) => {
   }
   const theme = THEMES.has(body?.theme ?? '') ? body!.theme : 'editorial'
   const paper = PAPERS.has(body?.paper ?? '') ? body!.paper : 'a4'
+  const furniture = {
+    header: normalizeFurniture(body?.header, DEFAULT_HEADER),
+    footer: normalizeFurniture(body?.footer, DEFAULT_FOOTER),
+  }
 
   // 1) Obtention du Doc JSON : soit celui validé par le client, soit re-structuration.
   let docJson: string
@@ -161,7 +199,7 @@ app.post('/api/generate', async (request, reply) => {
   try {
     const pdfPath = join(dir, 'out.pdf')
     const render = await runPython(
-      ['renderer.py', '--stdin', pdfPath, '--theme', theme!, '--paper', paper!],
+      ['renderer.py', '--stdin', pdfPath, '--theme', theme!, '--paper', paper!, '--furniture', JSON.stringify(furniture)],
       docJson,
     )
     if (!render.ok) {
