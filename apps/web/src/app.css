@@ -487,3 +487,12 @@ body {
 .page.font-mono { font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace; }
 .page.font-sans p, .page.font-modern p { line-height: 1.55; }
 .page.font-mono { font-size: 13px; line-height: 1.55; }
+
+.preview-meta { display: flex; justify-content: space-between; gap: 12px; padding: 0 2px 10px; color: var(--muted); font-size: 11px; letter-spacing: .03em; }
+.preview-meta strong { color: var(--accent); font-weight: 700; }
+.preview-page-guides { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.preview-page-guides span { position: absolute; left: 0; right: 0; display: flex; justify-content: flex-end; align-items: center; height: 1px; color: var(--muted); font-size: 10px; transform: translateY(-1px); }
+.preview-page-guides span::before { content: ''; position: absolute; left: 0; right: 0; border-top: 1px dashed color-mix(in srgb, var(--accent) 38%, var(--line)); }
+.preview-page-guides span { padding-right: 4px; }
+.preview-page-guides span::after { content: attr(data-label); }
+.preview-stage > .page { position: relative; z-index: 1; }

@@ -66,9 +66,13 @@ export async function downloadPreviewPdf(
 
   while (sourceTop < canvas.height) {
     const targetBottom = Math.min(canvas.height, sourceTop + pageHeightPx)
-    const safeBottom = boundaries
+    let safeBottom = boundaries
       .filter((boundary) => boundary > sourceTop + 120 && boundary <= targetBottom)
       .pop() ?? targetBottom
+    // Un petit reliquat sous la dernière limite de bloc est du padding de la
+    // feuille, pas une nouvelle page. On l’absorbe dans la page courante pour
+    // éviter un PDF avec une troisième page blanche.
+    if (canvas.height - safeBottom < pageHeightPx * 0.12) safeBottom = canvas.height
     const sliceHeight = Math.max(1, safeBottom - sourceTop)
     const pageCanvas = document.createElement('canvas')
     pageCanvas.width = canvas.width

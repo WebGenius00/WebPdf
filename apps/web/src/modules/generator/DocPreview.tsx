@@ -87,10 +87,13 @@ export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait'
     pageRef?.(node)
   }
   const stageHeight = Math.max(paperSize.height, contentHeight) * scale + 44
+  const pageCount = Math.max(1, Math.ceil(contentHeight / paperSize.height))
 
   return (
     <section ref={previewRef} className="preview" aria-live="polite">
+      <div className="preview-meta"><span>Format {paper.toUpperCase()} · {orientation === 'portrait' ? 'Portrait' : 'Paysage'}</span><strong>{pageCount} {pageCount > 1 ? 'pages' : 'page'}</strong></div>
       <div className="preview-stage" style={{ height: stageHeight }}>
+        <div className="preview-page-guides" aria-hidden="true">{Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => <span key={index} style={{ top: `${(index + 1) * paperSize.height * scale}px` }}>Page {index + 2}</span>)}</div>
         <article ref={setPageRef} className={`page paper-${paper} orientation-${orientation} font-${font} density-${layout?.density ?? 'standard'} title-spacing-${layout?.titleSpacing ?? 'standard'} align-${layout?.paragraphAlign ?? 'justify'}`} style={{ width: paperSize.width, minHeight: paperSize.height, transform: `scale(${scale})` }}>
           <header className="cover-mini"><h1 className="doc-title">{metadata.title ?? 'Document sans titre'}</h1>{metadata.subtitle && <p className="subtitle">{metadata.subtitle}</p>}{metadata.author && <p className="byline">{metadata.author}</p>}</header>
           {toc.length > 0 && <nav className="toc" aria-label="Table des matières"><h2>Sommaire</h2><ul>{toc.map((entry) => <li key={entry.id} data-level={entry.level}><a href={`#${entry.id}`}><span className="num">{entry.number}</span> {entry.text}</a></li>)}</ul></nav>}
