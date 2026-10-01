@@ -108,6 +108,7 @@ body { line-height: 1.62; }
   content: ""; display: block; width: 18mm;
   border-top: 2.5pt solid #4f46e5; margin: 7mm auto 0;
 }
+.cover .subtitle { font-size: 12pt; color: #64748b; font-style: italic; margin-bottom: 3mm; }
 .cover .author { font-size: 12pt; color: #64748b; font-style: italic; }
 .cover .date { font-size: 9.5pt; color: #8b95a7; margin-top: 4mm; }
 
@@ -123,6 +124,7 @@ nav.toc li { margin: 2.2mm 0; font-size: 10pt; line-height: 1.45; }
 nav.toc li.l2 { padding-left: 7mm; color: #475569; }
 nav.toc li.l3 { padding-left: 14mm; color: #64748b; font-size: 9.5pt; }
 nav.toc a { text-decoration: none; color: inherit; }
+nav.toc .toc-number { color: #4f46e5; font-weight: 600; margin-right: 1.5mm; }
 nav.toc a::after {
   content: leader('.') target-counter(attr(href), page);
   color: #94a3b8;
@@ -135,14 +137,14 @@ h1, h2, h3 {
 }
 h1 {
   font-size: 18pt; font-weight: 700; line-height: 1.22;
-  border-bottom: 0.9pt solid #cbd5e1; padding-bottom: 2.8mm;
+  border-bottom: 1.4pt solid #4f46e5; padding-bottom: 2.8mm;
   margin: 10mm 0 5mm; break-before: page;
   string-set: sectiontitle content();
 }
 h1.first { break-before: auto; }
 h2 { font-size: 14pt; line-height: 1.28; margin: 7mm 0 3mm; color: #334155; }
 h3 { font-size: 11pt; line-height: 1.3; margin: 5mm 0 2.5mm; color: #475569; }
-.heading-number { color: #4f46e5; margin-right: 2.5mm; font-weight: 600; }
+.heading-number { color: #4f46e5; margin-right: 0.8mm; font-weight: 600; }
 
 /* ---------- Paragraphes & listes ---------- */
 p { margin: 0 0 3.8mm; text-align: justify; orphans: 2; widows: 2; hyphens: auto; }
@@ -151,14 +153,14 @@ li { margin-bottom: 1.4mm; }
 li::marker { color: #4f46e5; }
 
 /* ---------- Définitions ---------- */
-dl dt { font-weight: bold; color: #172033; margin-top: 2.5mm; }
-dl dd { margin: 0 0 2mm 6mm; color: #475569; }
+.definition { margin-bottom: 3.8mm; }
+.definition strong { font-weight: 700; color: #172033; }
 
 /* ---------- Tableaux ---------- */
 table { border-collapse: collapse; width: 100%; margin: 4mm 0; font-size: 9.5pt; break-inside: auto; }
 thead { display: table-header-group; }
 th {
-  background: #263774; color: white;
+  background: #312e81; color: white;
   font: 700 8.5pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
   letter-spacing: 0.2pt;
 }
@@ -167,7 +169,7 @@ tbody tr:nth-child(even) { background: #f4f6fa; }
 tr { break-inside: avoid; }
 
 /* ---------- Encadrés ---------- */
-.callout { border-left: 3pt solid #4f46e5; background: #f3f4ff; padding: 3.5mm 4mm; margin: 4mm 0; break-inside: avoid; font-size: 10pt; }
+.callout { border-left: 3pt solid #4f46e5; background: #eef2ff; padding: 3.5mm 4mm; margin: 4mm 0; border-radius: 0 2mm 2mm 0; break-inside: avoid; font-size: 10pt; }
 .callout.note    { border-color: #0e7490; background: #ecfeff; }
 .callout.warning { border-color: #d97706; background: #fffbeb; }
 .callout.info    { border-color: #4f46e5; background: #f3f4ff; }
@@ -178,9 +180,13 @@ tr { break-inside: avoid; }
 }
 
 /* ---------- Code ---------- */
-pre.code { font-family: 'Liberation Mono', 'Nimbus Mono PS', monospace; font-size: 8.8pt; background: #f6f7fb;
+pre.code { font-family: 'Liberation Mono', 'Nimbus Mono PS', monospace; font-size: 8.8pt; background: #0f172a; color: #e2e8f0;
            border: 0.5pt solid #dbe2ea; border-radius: 2mm; padding: 3mm; margin: 3.5mm 0;
            white-space: pre-wrap; word-break: break-word; break-inside: avoid; }
+blockquote { border-left: 2pt solid #cbd5e1; margin: 4mm 0; padding: 0 4mm; color: #64748b; font-style: italic; }
+figure { margin: 4mm 0; text-align: center; break-inside: avoid; }
+figure img { max-width: 100%; height: auto; }
+figcaption { color: #64748b; font-size: 9pt; margin-top: 1mm; }
 """
 
 
@@ -206,7 +212,7 @@ def render_block(b: dict[str, Any], first_h1_done: bool) -> tuple[str, bool]:
         lvl = b["level"]
         num = b.get("number")
         anchor = f' id="{b["id"]}"' if b.get("id") else ""
-        num_html = f'<span class="heading-number">{num}</span>' if num and lvl > 1 else ""
+        num_html = f'<span class="heading-number">{esc(str(num))}</span>&ensp;' if num else ""
         cls = ' class="first"' if (lvl == 1 and not first_h1_done) else ""
         note_first = lvl == 1 and not first_h1_done
         return f"<h{lvl}{anchor}{cls}>{num_html}{inline_markup(b['text'])}</h{lvl}>", note_first
@@ -217,7 +223,8 @@ def render_block(b: dict[str, Any], first_h1_done: bool) -> tuple[str, bool]:
         items = "".join(f"<li>{inline_markup(i)}</li>" for i in b["items"])
         return f"<{tag}>{items}</{tag}>", first_h1_done
     if t == "definition":
-        return f"<dl><dt>{inline_markup(b['term'])}</dt><dd>{inline_markup(b['text'])}</dd></dl>", first_h1_done
+        return (f'<p class="definition"><strong>{inline_markup(b["term"])} :</strong> '
+                f'{inline_markup(b["text"])}</p>'), first_h1_done
     if t == "callout":
         variant = b.get("variant", "info")
         label = {"note": "Note", "warning": "Attention", "info": "À savoir"}.get(variant, "Note")
@@ -229,9 +236,18 @@ def render_block(b: dict[str, Any], first_h1_done: bool) -> tuple[str, bool]:
             "<tr>" + "".join(f"<td>{inline_markup(c)}</td>" for c in row) + "</tr>"
             for row in b["rows"]
         )
-        return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>", first_h1_done
+        caption = f'<caption>{inline_markup(b["caption"])}</caption>' if b.get("caption") else ""
+        return f"<table>{caption}<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>", first_h1_done
     if t == "code":
         return f'<pre class="code">{esc(b["text"])}</pre>', first_h1_done
+    if t == "quote":
+        cite = f'<footer>— {inline_markup(b["cite"])}</footer>' if b.get("cite") else ""
+        return f'<blockquote><p>{inline_markup(b["text"])}</p>{cite}</blockquote>', first_h1_done
+    if t == "image":
+        src = html.escape(str(b.get("src", "")), quote=True)
+        alt = html.escape(str(b.get("alt", "")), quote=True)
+        caption = f'<figcaption>{inline_markup(b["caption"])}</figcaption>' if b.get("caption") else ""
+        return f'<figure><img src="{src}" alt="{alt}">{caption}</figure>', first_h1_done
     return "", first_h1_done
 
 
@@ -242,7 +258,9 @@ def doc_to_html(doc: dict[str, Any], css: str = DEFAULT_CSS) -> str:
     cover = (
         '<section class="cover">'
         f'<h1 class="doc-title">{title}</h1>'
+        + (f'<div class="subtitle">{esc(meta["subtitle"])}</div>' if meta.get("subtitle") else "")
         + (f'<div class="author">{esc(meta["author"])}</div>' if meta.get("author") else "")
+        + (f'<div class="date">{esc(meta["date"])}</div>' if meta.get("date") else "")
         + "</section>"
     )
 
@@ -250,7 +268,7 @@ def doc_to_html(doc: dict[str, Any], css: str = DEFAULT_CSS) -> str:
     for e in doc.get("toc", []):
         toc_items.append(
             f'<li class="l{e["level"]}"><a href="#{e["id"]}">'
-            f'{e["number"]}&ensp;{esc(e["text"])}</a></li>'
+            f'<span class="toc-number">{esc(str(e["number"]))}</span> {esc(e["text"])}</a></li>'
         )
     toc = ('<nav class="toc"><h2>Sommaire</h2><ul>' + "".join(toc_items) + "</ul></nav>") if toc_items else ""
 

@@ -9,7 +9,7 @@
  * change d'onglet, et pour éviter de re-interroger l'API.
  */
 
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { DEFAULT_RENDER_OPTIONS, health, type RenderOptions } from './lib/api'
 import type { Doc } from './lib/doc'
 import { Generator } from './modules/generator/Generator'
@@ -80,7 +80,6 @@ export default function App() {
   const [doc, setDoc] = useState<Doc | null>(null)
   const [apiUp, setApiUp] = useState<boolean | null>(null)
   const [theme, setTheme] = useState<Theme>(readStoredTheme)
-  const previewRef = useRef<HTMLElement | null>(null)
 
   // Applique le thème sur <html> (auto = suit le système) et le mémorise.
   useEffect(() => {
@@ -178,8 +177,8 @@ export default function App() {
         </section>
         {tab === 'generate' ? (
           <div className="split">
-            <Generator doc={doc} onDoc={setDoc} options={renderOptions} onOptions={setRenderOptions} previewRef={previewRef} />
-            <DocPreview doc={doc} previewRef={previewRef} />
+            <Generator doc={doc} onDoc={setDoc} options={renderOptions} onOptions={setRenderOptions} />
+            <DocPreview doc={doc} />
           </div>
         ) : (
           <Suspense fallback={<p className="muted" style={{ padding: '2rem' }}>Chargement du lecteur…</p>}>

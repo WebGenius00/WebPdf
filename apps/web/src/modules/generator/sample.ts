@@ -18,11 +18,11 @@ Un document lisible repose sur une hiérarchie claire des informations. Trois ni
 
 1.1 Le titre principal
 
-Il annonce le sujet et conditionne la table des matières. Dans un document long, chaque grande partie démarre sur une nouvelle page pour offrir des points de repère visifs au lecteur.
+Il annonce le sujet et conditionne la table des matières. Dans un document long, chaque grande partie démarre sur une nouvelle page pour offrir des points de repère visuels au lecteur.
 
 1.2 Les sous-titres
 
-Ils découpent les parties en sections digeste. La numérotation automatique (1, 1.1, 1.2...) aide le lecteur à se situer dans l'architecture du document.
+Ils découpent les parties en sections digestes. La numérotation automatique (1, 1.1, 1.2...) aide le lecteur à se situer dans l'architecture du document.
 
 2. Éléments de contenu
 

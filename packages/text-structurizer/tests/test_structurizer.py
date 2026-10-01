@@ -90,6 +90,23 @@ class BuildDocumentTests(unittest.TestCase):
         ])
 
 
+class RendererHtmlTests(unittest.TestCase):
+    def test_html_keeps_heading_numbers_and_inline_definitions(self) -> None:
+        doc = {
+            "metadata": {"title": "Rapport"},
+            "toc": [{"level": 1, "number": "1", "text": "Introduction", "id": "h-1"}],
+            "blocks": [
+                {"type": "heading", "level": 1, "number": "1", "text": "Introduction", "id": "h-1"},
+                {"type": "definition", "term": "Typographie", "text": "Art du texte."},
+            ],
+        }
+        html = renderer.doc_to_html(doc)
+
+        self.assertIn('<span class="heading-number">1</span>&ensp;Introduction', html)
+        self.assertIn('<p class="definition"><strong>Typographie :</strong> Art du texte.</p>', html)
+        self.assertIn('<span class="toc-number">1</span> Introduction', html)
+
+
 class FurnitureCssTests(unittest.TestCase):
     def test_default_header_and_footer_keep_dynamic_page_labels(self) -> None:
         css = renderer.build_css()

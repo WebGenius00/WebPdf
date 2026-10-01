@@ -7,7 +7,7 @@
  * entre l'aperçu écran et le PDF final.
  */
 
-import type { ReactNode, RefObject } from 'react'
+import type { ReactNode } from 'react'
 import type { Block, Doc } from '../../lib/doc'
 
 /** Même sous-ensemble Markdown inline que le renderer PDF Python. */
@@ -98,12 +98,7 @@ function BlockView({ block }: { block: Block }) {
   }
 }
 
-interface DocPreviewProps {
-  doc: Doc | null
-  previewRef?: RefObject<HTMLElement | null>
-}
-
-export function DocPreview({ doc, previewRef }: DocPreviewProps) {
+export function DocPreview({ doc }: { doc: Doc | null }) {
   if (!doc) {
     return (
       <section className="preview">
@@ -117,7 +112,7 @@ export function DocPreview({ doc, previewRef }: DocPreviewProps) {
   const { metadata, toc, blocks } = doc
   return (
     <section className="preview">
-      <article ref={previewRef} className="page">
+      <article className="page">
         <header className="cover-mini">
           <h1 className="doc-title">{metadata.title ?? 'Document sans titre'}</h1>
           {metadata.subtitle && <p className="subtitle">{metadata.subtitle}</p>}
