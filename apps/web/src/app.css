@@ -526,3 +526,12 @@ body {
 .format-tool.italic { font-style: italic; }
 .format-tool.underline { text-decoration: underline; }
 .format-help { font-size: 11px; margin-left: 4px; }
+
+/* Rendu fidèle au contenu utilisateur : aucun trait décoratif ou surlignage automatique. */
+.cover-mini { border-bottom: 0; }
+.toc h2, .page h1 { border-bottom: 0; }
+.callout { border-left: 0; background: transparent; border-radius: 0; }
+blockquote { border-left: 0; }
+thead th { background: transparent; color: inherit; }
+tbody tr:nth-child(even) { background: transparent; }
+.callout.note, .callout.tip, .callout.warning, .callout.info-note { border-color: transparent; background: transparent; }

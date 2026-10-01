@@ -33,7 +33,7 @@ DEFAULT_CSS = """
     font: 700 7.5pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
     letter-spacing: 1pt; color: #4f46e5;
     vertical-align: bottom; padding-bottom: 2.2mm;
-    border-bottom: 0.6pt solid #dbe2ea;
+    border-bottom: 0;
   }
   @top-right {
     content: string(sectiontitle);
@@ -41,7 +41,7 @@ DEFAULT_CSS = """
     font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
     color: #64748b; text-align: right;
     vertical-align: bottom; padding-bottom: 2.2mm;
-    border-bottom: 0.6pt solid #dbe2ea;
+    border-bottom: 0;
   }
   @top-center {
     content: "";
@@ -49,7 +49,7 @@ DEFAULT_CSS = """
     font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
     color: #64748b; text-align: center;
     vertical-align: bottom; padding-bottom: 2.2mm;
-    border-bottom: 0.6pt solid #dbe2ea;
+    border-bottom: 0;
   }
   @bottom-left {
     content: string(doctitle);
@@ -57,7 +57,7 @@ DEFAULT_CSS = """
     font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
     color: #7b8495;
     vertical-align: top; padding-top: 2.2mm;
-    border-top: 0.6pt solid #dbe2ea;
+    border-top: 0;
   }
   @bottom-right {
     content: "Page " counter(page) " sur " counter(pages);
@@ -65,7 +65,7 @@ DEFAULT_CSS = """
     font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
     color: #475569; text-align: right;
     vertical-align: top; padding-top: 2.2mm;
-    border-top: 0.6pt solid #dbe2ea;
+    border-top: 0;
   }
   @bottom-center {
     content: "";
@@ -73,7 +73,7 @@ DEFAULT_CSS = """
     font: 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
     color: #7b8495; text-align: center;
     vertical-align: top; padding-top: 2.2mm;
-    border-top: 0.6pt solid #dbe2ea;
+    border-top: 0;
   }
 }
 @page :first {
@@ -105,8 +105,7 @@ body { line-height: 1.62; }
   break-before: auto; string-set: doctitle content();
 }
 .cover h1.doc-title::after {
-  content: ""; display: block; width: 18mm;
-  border-top: 2.5pt solid #4f46e5; margin: 7mm auto 0;
+  content: none;
 }
 .cover .subtitle { font-size: 12pt; color: #64748b; font-style: italic; margin-bottom: 3mm; }
 .cover .author { font-size: 12pt; color: #64748b; font-style: italic; }
@@ -117,7 +116,7 @@ nav.toc { break-after: page; }
 nav.toc h2 {
   font: 700 21pt/1.2 'Liberation Serif', 'Nimbus Roman', Georgia, serif;
   color: #172033; margin: 0 0 8mm; padding-bottom: 3mm;
-  border-bottom: 1pt solid #dbe2ea;
+  border-bottom: 0;
 }
 nav.toc ul { list-style: none; padding: 0; margin: 0; }
 nav.toc li { margin: 2.2mm 0; font-size: 10pt; line-height: 1.45; }
@@ -137,7 +136,7 @@ h1, h2, h3 {
 }
 h1 {
   font-size: 18pt; font-weight: 700; line-height: 1.22;
-  border-bottom: 1.4pt solid #4f46e5; padding-bottom: 2.8mm;
+  border-bottom: 0; padding-bottom: 2.8mm;
   margin: 10mm 0 5mm; break-before: page;
   string-set: sectiontitle content();
 }
@@ -162,19 +161,17 @@ li::marker { color: #4f46e5; }
 table { border-collapse: collapse; width: 100%; margin: 4mm 0; font-size: 9.5pt; break-inside: auto; }
 thead { display: table-header-group; }
 th {
-  background: #312e81; color: white;
+  background: transparent; color: inherit;
   font: 700 8.5pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
   letter-spacing: 0.2pt;
 }
 th, td { border: 0.5pt solid #d6deea; padding: 2mm 2.5mm; text-align: left; }
-tbody tr:nth-child(even) { background: #f4f6fa; }
+tbody tr:nth-child(even) { background: transparent; }
 tr { break-inside: avoid; }
 
 /* ---------- Encadrés ---------- */
-.callout { border-left: 3pt solid #4f46e5; background: #eef2ff; padding: 3.5mm 4mm; margin: 4mm 0; border-radius: 0 2mm 2mm 0; break-inside: avoid; font-size: 10pt; }
-.callout.note    { border-color: #0e7490; background: #ecfeff; }
-.callout.warning { border-color: #d97706; background: #fffbeb; }
-.callout.info    { border-color: #4f46e5; background: #f3f4ff; }
+.callout { border-left: 0; background: transparent; padding: 3.5mm 0; margin: 4mm 0; border-radius: 0; break-inside: avoid; font-size: 10pt; }
+.callout.note, .callout.warning, .callout.info { border-color: transparent; background: transparent; }
 .callout .label {
   font: 700 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
   text-transform: uppercase; letter-spacing: 0.5pt;
@@ -185,7 +182,7 @@ tr { break-inside: avoid; }
 pre.code { font-family: 'Liberation Mono', 'Nimbus Mono PS', monospace; font-size: 8.8pt; background: #0f172a; color: #e2e8f0;
            border: 0.5pt solid #dbe2ea; border-radius: 2mm; padding: 3mm; margin: 3.5mm 0;
            white-space: pre-wrap; word-break: break-word; break-inside: avoid; }
-blockquote { border-left: 2pt solid #cbd5e1; margin: 4mm 0; padding: 0 4mm; color: #64748b; font-style: italic; }
+blockquote { border-left: 0; margin: 4mm 0; padding: 0; color: #64748b; font-style: italic; }
 figure { margin: 4mm 0; text-align: center; break-inside: avoid; }
 figure img { max-width: 100%; height: auto; }
 figcaption { color: #64748b; font-size: 9pt; margin-top: 1mm; }
@@ -300,7 +297,7 @@ THEMES: dict[str, str] = {
     # Palette par défaut (bleu éditorial) — héritée de DEFAULT_CSS.
     "editorial": "",
     "corporate": """
-h1 { border-bottom-color: #0f766e !important; }
+ h1 { border-bottom: 0 !important; }
 .heading-number { color: #0f766e !important; }
 h2 { color: #115e59 !important; }
 th { background: #134e4a !important; }
@@ -308,7 +305,7 @@ th { background: #134e4a !important; }
 .cover::before { color: #0f766e; }
 """,
     "academic": """
-h1 { border-bottom: 1.4pt solid #111827 !important; font-variant: small-caps; }
+ h1 { border-bottom: 0 !important; font-variant: small-caps; }
 .heading-number { color: #374151 !important; }
 h2, h3 { color: #111827 !important; }
 th { background: #374151 !important; }
@@ -400,8 +397,8 @@ def _furniture_css(raw: dict[str, Any] | None) -> str:
     settings = _normalize_furniture(raw)
     rules: list[str] = []
     box_styles = {
-        "top": "vertical-align: bottom; padding-bottom: 2.2mm; border-bottom: 0.6pt solid #dbe2ea;",
-        "bottom": "vertical-align: top; padding-top: 2.2mm; border-top: 0.6pt solid #dbe2ea;",
+        "top": "vertical-align: bottom; padding-bottom: 2.2mm; border-bottom: 0;",
+        "bottom": "vertical-align: top; padding-top: 2.2mm; border-top: 0;",
     }
     for kind, edge in (("header", "top"), ("footer", "bottom")):
         config = settings[kind]
