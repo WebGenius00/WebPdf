@@ -81,10 +81,9 @@ interface GeneratorProps {
   options: RenderOptions
   onOptions: (o: RenderOptions) => void
   onPreview?: () => void
-  onOpenPreview?: (event?: React.MouseEvent<HTMLElement>) => void
 }
 
-export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, onOpenPreview }: GeneratorProps) {
+export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview }: GeneratorProps) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'structure' | 'pdf' | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -213,9 +212,7 @@ export function Generator({ doc, onDoc, onStage, options, onOptions, onPreview, 
         <span className="toolbar-label">Action principale</span>
         {!doc ? <button className="btn primary" onClick={() => void structure(true)} disabled={busy !== null || !text.trim()} aria-busy={busy === 'structure'}>
           {busy === 'structure' ? 'Structuration…' : '✦ Structurer le document'}
-        </button> : <button type="button" className="btn primary" onClick={onOpenPreview} disabled={busy !== null}>
-          Voir l’aperçu
-        </button>}
+        </button> : <span className="live-preview-hint">Aperçu en direct à droite</span>}
         <span className="document-state" role="status" aria-live="polite">
           <span className={`state-dot ${doc ? 'ready' : text.trim() ? 'attention' : ''}`} aria-hidden="true" />
           {!text.trim() ? 'Brouillon : ajoutez votre contenu' : !doc ? 'Structure à actualiser' : 'Aperçu prêt à vérifier'}

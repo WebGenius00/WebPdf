@@ -34,13 +34,10 @@ export default function App() {
   const [doc, setDoc] = useState<Doc | null>(null)
   const [apiUp, setApiUp] = useState<boolean | null>(null)
   const [theme, setTheme] = useState<Theme>(readStoredTheme)
-  const [previewOpen, setPreviewOpen] = useState(false)
   const [downloadMessage, setDownloadMessage] = useState('')
   const [downloadBusy, setDownloadBusy] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(0)
   const [generationStage, setGenerationStage] = useState<GenerationStage>(1)
-  const closeButtonRef = useRef<HTMLButtonElement>(null)
-  const returnFocusRef = useRef<HTMLElement | null>(null)
   const previewPageRef = useRef<HTMLElement>(null)
   const switchTab = useCallback((nextTab: Tab) => {
     startTransition(() => setTab(nextTab))
@@ -61,31 +58,6 @@ export default function App() {
     return () => { alive = false; clearInterval(id) }
   }, [])
 
-  useEffect(() => {
-    if (!previewOpen) return
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    closeButtonRef.current?.focus()
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); setPreviewOpen(false); setGenerationStage(3); return }
-      if (event.key !== 'Tab') return
-      const dialog = document.querySelector<HTMLElement>('.preview-dialog')
-      if (!dialog) return
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
-      if (!focusable.length) return
-      const first = focusable[0]; const last = focusable[focusable.length - 1]
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', onKeyDown); returnFocusRef.current?.focus() }
-  }, [previewOpen])
-
-  const openPreview = (event?: React.MouseEvent<HTMLElement>) => {
-    returnFocusRef.current = event?.currentTarget ?? document.activeElement as HTMLElement
-    setDownloadMessage(''); setGenerationStage(4); setPreviewOpen(true)
-  }
-  const closePreview = () => { setPreviewOpen(false); setGenerationStage(3) }
   const handleDownload = async () => {
     if (!previewPageRef.current || !doc) return
     setDownloadMessage('')
@@ -119,7 +91,7 @@ export default function App() {
         </section>
         {tab === 'generate' ? <div className="editor-stage"><ol className="flow-steps" aria-label="Progression de génération">
           {['Contenu', 'Structure', 'Présentation', 'Export'].map((label, index) => <li key={label} className={index + 1 === generationStage ? 'current' : index + 1 < generationStage ? 'complete' : ''}><span>{index + 1}</span>{label}</li>)}
-        </ol><Generator doc={doc} onDoc={setDoc} onStage={setGenerationStage} options={renderOptions} onOptions={setRenderOptions} onPreview={openPreview} onOpenPreview={openPreview}/>{doc && previewOpen && <div className="preview-overlay" role="presentation"><div className="preview-dialog" role="dialog" aria-modal="true" aria-labelledby="preview-title" aria-describedby="preview-description"><div className="preview-dialog-header"><div><p className="eyebrow">Aperçu du document</p><h2 id="preview-title">Vérifier le PDF</h2><p id="preview-description" className="muted">Parcourez l’intégralité du document avant de revenir à l’édition ou de le télécharger.</p></div><div className="preview-actions"><button ref={closeButtonRef} type="button" className="btn" onClick={closePreview}>← Retour à l’édition</button><button type="button" className="btn primary" onClick={() => void handleDownload()} disabled={!doc || downloadBusy} aria-busy={downloadBusy}>{downloadBusy ? `Génération ${downloadProgress}%` : downloadMessage.startsWith('Échec') ? 'Réessayer' : downloadMessage ? '✓ PDF téléchargé' : '⬇ Télécharger le PDF'}</button></div></div>{downloadBusy && <div className="download-progress-panel" role="status" aria-live="polite"><div className="download-progress-copy"><span>{downloadProgress < 48 ? 'Capture de l’aperçu…' : 'Assemblage des pages PDF…'}</span><strong>{downloadProgress}%</strong></div><div className="download-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={downloadProgress} aria-label="Progression de la génération du PDF"><span style={{ width: `${downloadProgress}%` }}/></div></div>}{downloadMessage && <p className={`success-message${downloadMessage.startsWith('Échec') ? ' download-error' : ''}`} role="status" aria-live="polite">{downloadMessage}</p>}<DocPreview doc={doc} layout={renderOptions.layout} pageRef={previewPageRef}/></div></div>}</div> : <div id="panel-read"><Suspense fallback={<p className="muted" style={{ padding: '2rem' }} role="status">Chargement du lecteur…</p>}><PdfReader/></Suspense></div>}
+        </ol><div className="generator-workspace"><Generator doc={doc} onDoc={setDoc} onStage={setGenerationStage} options={renderOptions} onOptions={setRenderOptions} onPreview={() => setGenerationStage(4)}/><section className="live-preview-panel" aria-label="Aperçu PDF en direct"><div className="live-preview-header"><div><p className="eyebrow">Aperçu en direct</p><h2>Votre PDF</h2><p className="muted">La version téléchargée sera capturée ici, telle qu’elle est affichée.</p></div><button type="button" className="btn primary" onClick={() => void handleDownload()} disabled={!doc || downloadBusy} aria-busy={downloadBusy}>{downloadBusy ? `Génération ${downloadProgress}%` : downloadMessage.startsWith('Échec') ? 'Réessayer' : downloadMessage ? '✓ PDF téléchargé' : '⬇ Télécharger le PDF'}</button></div>{downloadBusy && <div className="download-progress-panel" role="status" aria-live="polite"><div className="download-progress-copy"><span>{downloadProgress < 48 ? 'Capture de l’aperçu…' : 'Assemblage des pages PDF…'}</span><strong>{downloadProgress}%</strong></div><div className="download-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={downloadProgress} aria-label="Progression de la génération du PDF"><span style={{ width: `${downloadProgress}%` }}/></div></div>}{downloadMessage && <p className={`success-message${downloadMessage.startsWith('Échec') ? ' download-error' : ''}`} role="status" aria-live="polite">{downloadMessage}</p>}<DocPreview doc={doc} layout={renderOptions.layout} pageRef={previewPageRef}/></section></div></div> : <div id="panel-read"><Suspense fallback={<p className="muted" style={{ padding: '2rem' }} role="status">Chargement du lecteur…</p>}><PdfReader/></Suspense></div>}
       </main>
       <footer className="app-footer muted">PDF Studio · schéma doc/0.1</footer>
     </div>
