@@ -15,7 +15,7 @@ const RE_ATX_HEADING = /^(#{1,6})\s+(.+)$/
 const RE_SETEXT_HEADING = /^[=\-~]{3,}\s*$/
 const RE_UPPER_HEADING = /^[A-ZÀ-ÖØ-Þ][\wÀ-ÿ ,;:'’\-\.&()]{2,80}$/
 const RE_NUMBERED_HEADING =
-  /^((?:\d+[.\)])*\d+|Partie\s+[IVXLCDM]+|Chapitre\s+\d+|Section\s+\d+|Annexe\s+[A-Z])[\s:.\-–—]\s*(.+)$/i
+  /^((?:\d+[.\)])*\d+|Partie\s+[IVXLCDM]+|Chapitre\s+\d+|Section\s+\d+|Annexe\s+[A-Z])[\s:.\-–—]*\s*(.+)$/i
 const RE_BULLET = /^\s*[-•*‣▪◦]\s+(.*)$/
 const RE_NUMBERED_ITEM = /^\s*\(?\d+[.)]\)?\s+(.*)$/
 const RE_LETTER_ITEM = /^\s*[a-z]{1,2}[.)]\s+(.*)$/
@@ -50,7 +50,7 @@ function looksLikeHeading(line: string): 1 | 2 | 3 | null {
   if (num && line.length <= 90) {
     const first = /\d+/.exec(num[1])
     if (!(first && parseInt(first[0], 10) > 15)) {
-      const depth = (num[1].match(/(?:\d+[.\)])*\d+/g) ?? ['1']).length
+      const depth = (num[1].match(/\d+/g) ?? ['1']).length
       return depth <= 1 ? 1 : depth === 2 ? 2 : 3
     }
   }
@@ -62,9 +62,14 @@ function looksLikeHeading(line: string): 1 | 2 | 3 | null {
     [...line].filter((c) => /[a-zA-ZÀ-ÿ]/.test(c)).length >= 3
   )
     return 1
-  if (line.length <= 50 && !/[.;:!,]$/.test(line) && !RE_SENTENCE_END.test(line)) {
+  if (line.length <= 50 && !/[.;:!,]$/.test(line) && !RE_SENTENCE_END.test(line) && !RE_AUTHOR_LINE.test(line)) {
     const words = line.split(/\s+/)
-    if (words.length > 1 && words.length <= 8 && words[0][0] === words[0][0].toUpperCase())
+    if (
+      words.length >= 1 &&
+      words.length <= 8 &&
+      line[0] === line[0].toUpperCase() &&
+      line[0] !== line[0].toLowerCase()
+    )
       return 2
   }
   return null
@@ -76,7 +81,10 @@ function headingNumber(line: string): string | undefined {
 
 function headingTitle(line: string): string {
   const atx = RE_ATX_HEADING.exec(line)
-  return (atx ? atx[2] : line).trim().replace(/:$/, '').trim()
+  if (atx) return atx[2].trim()
+  const num = RE_NUMBERED_HEADING.exec(line)
+  if (num) return num[2].trim()
+  return line.trim().replace(/:$/, '').trim()
 }
 
 const isPlainTitle = (s: string): boolean => s.length <= 80 && !/[.!?]$/.test(s)
@@ -104,6 +112,7 @@ function buildBlocks(lines: RawLine[]): Record<string, unknown>[] {
       const variant =
         kind === 'remarque' || kind === 'note' ? 'note'
         : kind === 'attention' || kind === 'avertissement' ? 'warning'
+        : kind === 'encadré' ? 'tip'
         : 'note'
       blocks.push({ type: 'callout', variant, text })
     } else {
@@ -162,7 +171,16 @@ function buildBlocks(lines: RawLine[]): Record<string, unknown>[] {
     const mb = RE_BULLET.exec(raw.text)
     const mn = RE_NUMBERED_ITEM.exec(raw.text)
     const ml = !mn ? RE_LETTER_ITEM.exec(raw.text) : null
-    if (mb || mn || ml) {
+    // « 2. Partie » suivie d'un paragraphe = titre numéroté, pas une
+    // liste à un seul élément. Une séquence « 1. … / 2. … » reste une
+    // liste numérotée (parité avec structurizer.py).
+    const nextIsItem =
+      i + 1 < lines.length &&
+      (RE_BULLET.test(lines[i + 1].text) ||
+        RE_NUMBERED_ITEM.test(lines[i + 1].text) ||
+        RE_LETTER_ITEM.test(lines[i + 1].text))
+    const numberedTitle = Boolean(mn && looksLikeHeading(stripped) && !nextIsItem)
+    if ((mb || mn || ml) && !numberedTitle) {
       flushPara()
       const ordered = Boolean(mn || ml)
       const items: string[] = []
@@ -238,6 +256,18 @@ function slug(s: string): string {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
+/** S'assure qu'il n'y a pas de saut de niveau brutal (H1 → H3). */
+function rebalanceLevels(blocks: Record<string, unknown>[]): Record<string, unknown>[] {
+  let lastLevel = 0
+  for (const b of blocks) {
+    if (b.type === 'heading') {
+      if (lastLevel && (b.level as number) > lastLevel + 1) b.level = lastLevel + 1
+      lastLevel = b.level as number
+    }
+  }
+  return blocks
+}
+
 /** Point d'entrée : texte brut → Doc JSON (schéma doc/0.1), conforme au Python. */
 export function structureTextClient(rawText: string): Doc {
   const text = normalize(rawText)
@@ -271,11 +301,15 @@ export function structureTextClient(rawText: string): Doc {
   }
 
   // Re-équilibrage des niveaux (pas de saut H1→H3)
-  let lastLevel = 0
-  for (const b of blocks) {
-    if (b.type === 'heading') {
-      if (lastLevel && (b.level as number) > lastLevel + 1) b.level = lastLevel + 1
-      lastLevel = b.level as number
+  blocks = rebalanceLevels(blocks)
+  // Le premier titre du corps devient le point d'entrée H1 lorsque la
+  // première ligne a déjà été consommée comme titre de document
+  // (parité avec build_document() côté Python).
+  if (docTitle) {
+    const firstHeading = blocks.find((b) => b.type === 'heading')
+    if (firstHeading && (firstHeading.level as number) > 1) {
+      firstHeading.level = 1
+      blocks = rebalanceLevels(blocks)
     }
   }
   // Aucun H1 mais des H2 → promeut le premier
@@ -290,10 +324,10 @@ export function structureTextClient(rawText: string): Doc {
     if (b.type === 'heading') {
       const lvl = b.level as 1 | 2 | 3
       const id = `h-${slug(b.text as string)}-${toc.length + 1}`
-      const number = headingNumber(b.text as string)
-      const block: Record<string, unknown> = number
-        ? { ...b, text: (b.text as string).replace(new RegExp(`^${number}\\s*`), '').trim(), number, id }
-        : { ...b, id }
+      // Le numéro est déjà stocké par buildBlocks (comme le Python) ;
+      // le texte du titre est déjà propre (group 2), rien à re-stripper.
+      const block: Record<string, unknown> = { ...b, id }
+      const number = block.number as string | undefined
       numbered.push(block)
       toc.push({ level: lvl, number: number ?? '', text: block.text as string, id })
     } else numbered.push(b)

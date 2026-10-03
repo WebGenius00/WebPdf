@@ -65,7 +65,7 @@ RE_SETEXT_HEADING = re.compile(r"^[=\-~]{3,}\s*$")                # soulignement
 RE_UPPER_HEADING = re.compile(r"^[A-ZÀ-ÖØ-Þ][\wÀ-ÿ ,;:'’\-\.&()]{2,80}$")
 RE_NUMBERED_HEADING = re.compile(
     r"^((?:\d+[\.\)])*\d+|Partie\s+[IVXLCDM]+|Chapitre\s+\d+|Section\s+\d+|Annexe\s+[A-Z])"
-    r"[\s:\.\-–—]\s*(.+)$",
+    r"[\s:\.\-–—]*\s*(.+)$",
     re.IGNORECASE,
 )
 RE_BULLET = re.compile(r"^\s*[-•*‣▪◦]\s+(.*)$")
@@ -157,7 +157,7 @@ def build_blocks(lines: list[RawLine]) -> list[dict]:
                     kind = RE_CAPTION.match(text).group(1).lower()
                     callout_type = {"remarque": "note", "attention": "warning",
                                     "avertissement": "warning", "note": "note",
-                                    "encadré": "info"}.get(kind, "info")
+                                    "encadré": "tip"}.get(kind, "note")
                     blocks.append({"type": "callout", "variant": callout_type,
                                    "text": text})
                 else:

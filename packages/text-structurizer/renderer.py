@@ -171,7 +171,7 @@ tr { break-inside: avoid; }
 
 /* ---------- Encadrés ---------- */
 .callout { border-left: 0; background: transparent; padding: 3.5mm 0; margin: 4mm 0; border-radius: 0; break-inside: avoid; font-size: 10pt; }
-.callout.note, .callout.warning, .callout.info { border-color: transparent; background: transparent; }
+.callout.note, .callout.warning, .callout.tip { border-color: transparent; background: transparent; }
 .callout .label {
   font: 700 8pt 'Liberation Sans', 'Nimbus Sans', Arial, sans-serif;
   text-transform: uppercase; letter-spacing: 0.5pt;
@@ -226,8 +226,8 @@ def render_block(b: dict[str, Any], first_h1_done: bool) -> tuple[str, bool]:
         return (f'<p class="definition"><strong>{inline_markup(b["term"])} :</strong> '
                 f'{inline_markup(b["text"])}</p>'), first_h1_done
     if t == "callout":
-        variant = b.get("variant", "info")
-        label = {"note": "Note", "warning": "Attention", "info": "À savoir"}.get(variant, "Note")
+        variant = b.get("variant", "note")
+        label = {"note": "Note", "warning": "Attention", "tip": "Astuce"}.get(variant, "Note")
         return (f'<div class="callout {variant}"><span class="label">{label}</span>'
                 f"{inline_markup(b['text'])}</div>"), first_h1_done
     if t == "table":

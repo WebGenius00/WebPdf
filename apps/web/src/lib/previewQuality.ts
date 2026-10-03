@@ -15,8 +15,13 @@ export function inspectPreviewQuality(root: HTMLElement): PreviewQualityIssue[] 
     const pageNumber = index + 1
     const text = article.textContent?.replace(/\s+/g, ' ').trim() ?? ''
     if (!text) {
-      issues.push({ type: 'empty-page', page: pageNumber, message: `La page ${pageNumber} est vide.` })
-      return
+      // Une page peut n'être composée que d'éléments non textuels
+      // (image, tableau, code) : ce n'est pas une page vide.
+      const hasVisualContent = article.querySelector('img, table, pre, svg') !== null
+      if (!hasVisualContent) {
+        issues.push({ type: 'empty-page', page: pageNumber, message: `La page ${pageNumber} est vide.` })
+        return
+      }
     }
 
     const blocks = Array.from(article.querySelectorAll<HTMLElement>(':scope > .preview-block'))
