@@ -1,18 +1,37 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Block, Doc } from '../../lib/doc'
-import type { LayoutOptions } from '../../lib/api'
+import type { LayoutOptions, PageFurniture } from '../../lib/api'
 
 const PAPER_PIXELS = {
   a4: { width: 794, height: 1123 },
   letter: { width: 816, height: 1056 },
 } as const
-// .page utilise 56px de padding en haut et en bas (box-sizing border-box).
-// La pagination doit donc réserver les deux marges, pas une seule.
-const PAGE_VERTICAL_PADDING = 112
 
 function paperPixels(paper: 'a4' | 'letter', orientation: 'portrait' | 'landscape') {
   const size = PAPER_PIXELS[paper]
   return orientation === 'landscape' ? { width: size.height, height: size.width } : size
+}
+
+/**
+ * Remplace les variables d'en-tête/pied : {title}, {section}, {page}, {pages}.
+ * Les variables inconnues sont retirées pour ne jamais afficher d'accolates.
+ */
+function fillFurnitureVars(template: string, vars: Record<string, string>): string {
+  return template
+    .replace(/\{title\}/g, vars.title)
+    .replace(/\{section\}/g, vars.section)
+    .replace(/\{page\}/g, vars.page)
+    .replace(/\{pages\}/g, vars.pages)
+    .replace(/\{[^{}]*\}/g, '')
+}
+
+/** Section courante (dernier titre h1/h2 rencontré) pour chaque bloc du document. */
+function sectionByBlock(blocks: Block[]): string[] {
+  let current = ''
+  return blocks.map((block) => {
+    if (block.type === 'heading' && (block.level === 1 || block.level === 2)) current = block.text
+    return current
+  })
 }
 
 function InlineText({ text }: { text: string }) {
@@ -53,17 +72,30 @@ function TableOfContents({ toc }: { toc: Doc['toc'] }) {
   return <nav className="toc" aria-label="Table des matières"><h2>Sommaire</h2><ul>{toc.map((entry) => <li key={entry.id} data-level={entry.level}><a href={`#${entry.id}`}>{entry.number && <span className="num">{entry.number}</span>} {entry.text}</a></li>)}</ul></nav>
 }
 
+/** Une ligne d'en-tête ou de pied de page : trois zones alignées gauche/centre/droite. */
+function FurnitureLine({ furniture, vars }: { furniture: PageFurniture; vars: Record<string, string> }) {
+  return (
+    <div className="sheet-furniture" aria-hidden="true">
+      <span className="zone-left">{fillFurnitureVars(furniture.left, vars)}</span>
+      <span className="zone-center">{fillFurnitureVars(furniture.center, vars)}</span>
+      <span className="zone-right">{fillFurnitureVars(furniture.right, vars)}</span>
+    </div>
+  )
+}
+
 interface DocPreviewProps {
   doc: Doc | null
   layout?: LayoutOptions
   paper?: 'a4' | 'letter'
   orientation?: 'portrait' | 'landscape'
   font?: 'serif' | 'sans' | 'modern' | 'mono'
+  header?: PageFurniture
+  footer?: PageFurniture
   focusText?: string
   pageRef?: (node: HTMLElement | null) => void
 }
 
-export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait', font = 'serif', focusText = '', pageRef }: DocPreviewProps) {
+export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait', font = 'serif', header, footer, focusText = '', pageRef }: DocPreviewProps) {
   const previewRef = useRef<HTMLElement>(null)
   const measureRef = useRef<HTMLElement>(null)
   const [scale, setScale] = useState(1)
@@ -83,6 +115,11 @@ export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait'
     const update = () => {
       const available = Math.max(260, preview.clientWidth - 44)
       setScale(Math.min(1, available / paperSize.width))
+      // Marges réelles lues dans le CSS (le jour où .page change de padding,
+      // la pagination s'adapte automatiquement — aucune constante à maintenir).
+      const measureStyles = window.getComputedStyle(measure)
+      const padTop = Number.parseFloat(measureStyles.paddingTop) || 0
+      const padBottom = Number.parseFloat(measureStyles.paddingBottom) || 0
       const contentStart = tocLength > 0 ? 2 : 1
       const children = Array.from(measure.children).slice(contentStart) as HTMLElement[]
       const top = measure.getBoundingClientRect().top
@@ -90,9 +127,12 @@ export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait'
       let page = 0
       for (let index = 0; index < children.length; index += 1) {
         const bottom = children[index].getBoundingClientRect().bottom - top
-        const pageContentLimit = (page + 1) * paperSize.height - PAGE_VERTICAL_PADDING
+        // Limite de contenu de la page courante : hauteur papier moins les deux marges.
+        const pageContentLimit = (page + 1) * paperSize.height - padTop - padBottom
         const containsHeading = Boolean(children[index].querySelector('h1, h2, h3'))
         const nextBottom = children[index + 1] ? children[index + 1].getBoundingClientRect().bottom - top : bottom
+        // Un titre ne doit jamais rester seul en bas de page : s'il n'y a plus
+        // la place pour le bloc qui le suit, le titre part sur la page suivante.
         const headingNeedsFollowingContent = containsHeading && nextBottom > pageContentLimit
         if (groups[page].length > 0 && (bottom > pageContentLimit || headingNeedsFollowingContent)) {
           page += 1
@@ -113,24 +153,39 @@ export function DocPreview({ doc, layout, paper = 'a4', orientation = 'portrait'
 
   const { metadata, toc, blocks } = doc
   const groups = pageGroups ?? [blocks.map((_, index) => index)]
+  const sections = sectionByBlock(blocks)
   const pageClass = `page paper-${paper} orientation-${orientation} font-${font} density-${layout?.density ?? 'standard'} title-spacing-${layout?.titleSpacing ?? 'standard'} align-${layout?.paragraphAlign ?? 'justify'}`
   const stageHeight = groups.length * (paperSize.height * scale + 28) + 8
   const setPageRef = (node: HTMLElement | null) => pageRef?.(node)
+  const hasHeader = Boolean(header?.enabled && (header.left || header.center || header.right))
+  const hasFooter = Boolean(footer?.enabled && (footer.left || footer.center || footer.right))
 
   return (
     <section ref={previewRef} className="preview" aria-live="polite">
       <div className="preview-meta"><span>Format {paper.toUpperCase()} · {orientation === 'portrait' ? 'Portrait' : 'Paysage'}</span><strong>{groups.length} {groups.length > 1 ? 'pages' : 'page'}</strong></div>
       <div className="preview-stage paginated-preview" ref={setPageRef} style={{ height: stageHeight }}>
-        {groups.map((group, pageIndex) => <div className="page-sheet" key={pageIndex} style={{ width: paperSize.width, height: paperSize.height, top: pageIndex * (paperSize.height + 28) * scale, transform: `translateX(-50%) scale(${scale})` }}>
-          <article className={pageClass} style={{ width: paperSize.width, minHeight: paperSize.height }}>
-            {pageIndex === 0 && <><Cover metadata={metadata}/><TableOfContents toc={toc}/></>}
-            {group.map((blockIndex) => {
-              const blockText = JSON.stringify(blocks[blockIndex]).toLowerCase()
-              const focused = focusText.trim().length > 8 && blockText.includes(focusText.trim().toLowerCase())
-              return <div className={`preview-block${focused ? ' preview-focus' : ''}`} key={blockIndex}><BlockView block={blocks[blockIndex]} /></div>
-            })}
-          </article>
-        </div>)}
+        {groups.map((group, pageIndex) => {
+          const isCover = pageIndex === 0
+          const showHeader = hasHeader && (!isCover || Boolean(header?.onCover))
+          const showFooter = hasFooter && (!isCover || Boolean(footer?.onCover))
+          const vars = {
+            title: metadata.title ?? 'document',
+            section: group.length > 0 ? sections[group[0]] ?? '' : '',
+            page: String(pageIndex + 1),
+            pages: String(groups.length),
+          }
+          return <div className="page-sheet" key={pageIndex} style={{ width: paperSize.width, height: paperSize.height, top: pageIndex * (paperSize.height + 28) * scale, transform: `translateX(-50%) scale(${scale})` }}>
+            {showHeader && header && <div className="sheet-header"><FurnitureLine furniture={header} vars={vars} /></div>}
+            {showFooter && footer && <div className="sheet-footer"><FurnitureLine furniture={footer} vars={vars} /></div>}
+            <article className={pageClass} style={{ width: paperSize.width, minHeight: paperSize.height }}>
+              {isCover && <><Cover metadata={metadata}/><TableOfContents toc={toc}/></>}
+              {group.map((blockIndex) => {
+                const blockText = JSON.stringify(blocks[blockIndex]).toLowerCase()
+                const focused = focusText.trim().length > 8 && blockText.includes(focusText.trim().toLowerCase())
+                return <div className={`preview-block${focused ? ' preview-focus' : ''}`} key={blockIndex}><BlockView block={blocks[blockIndex]} /></div>
+              })}
+            </article>
+          </div>})}
         <article ref={measureRef} className={`${pageClass} preview-measure`} style={{ width: paperSize.width, minHeight: paperSize.height }} aria-hidden="true"><Cover metadata={metadata}/><TableOfContents toc={toc}/>{blocks.map((block, index) => <div className="preview-block" key={index}><BlockView block={block} /></div>)}</article>
       </div>
     </section>
